@@ -32,7 +32,7 @@ final class AppModel: ObservableObject {
     @Published var status: String?
     @Published var errorMessage: String?
     @Published var showPrintConfirm = false
-    /// 여백 수동 조정 중인 파일(nil이면 꺼짐). 켜면 미리보기가 원본 쪽과 위·아래 점선으로 바뀐다.
+    /// 여백 수동 조정 중인 파일(nil이면 꺼짐). 켜면 미리보기가 원본 쪽과 네 변의 점선으로 바뀐다.
     @Published var manualCropFileID: UUID?
     /// 수동 조정을 켤 때 처음 보여 줄 쪽(그 파일의 고른 형 쪽 목록에서 몇 번째).
     @Published var manualCropStartPosition = 0

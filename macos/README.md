@@ -19,7 +19,7 @@ Xcode에서 작업하려면 `Package.swift`를 엽니다. 다만 Dock 아이콘�
 Sources/MogoCore/        자르기·배치·인쇄 로직 (UI 없음)
   ExamDocument.swift     PDF 불러오기, 홀·짝 형 감지, 쪽별 내용 영역 감지(50dpi 렌더링, 멀티스레드)
   Imposer.swift          자를 범위와 배율 계산, 수동 조정, 빈 쪽, A4에 벡터로 그리기, 폴더 펼치기
-  CropGuides.swift       여백 수동 조정 화면의 위·아래 점선 계산(끌기 제한, 점선 위치 ↔ 조정값)
+  CropGuides.swift       여백 수동 조정 화면의 네 변 점선 계산(끌기 제한, 점선 위치 ↔ 조정값)
   Printing.swift         lp(CUPS) 인쇄, 드라이버 옵션 자동 추가, PPD에서 인쇄 불가 여백 읽기
 Sources/MogoPrint/       SwiftUI 앱 (DebugSnapshot.swift는 개발용 자동 UI 점검)
 Sources/mogo-cli/        명령줄 도구

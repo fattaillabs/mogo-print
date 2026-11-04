@@ -212,7 +212,7 @@ struct FileRow: View {
                     .foregroundStyle(adjusted || model.manualCropFileID == file.id ? Color.accentColor : Color.secondary)
             }
             .buttonStyle(.plain)
-            .help("위·아래 여백 조정")
+            .help("여백 조정")
             Button {
                 model.remove(file)
             } label: {
@@ -258,10 +258,8 @@ struct PreviewPane: View {
             Divider()
             ZStack {
                 // 수동 조정 중에도 A4 미리보기는 뒤에 그대로 둔다(돌아오면 보던 쪽이 유지되게).
-                PDFPreview(document: model.preview, currentPage: $currentPage)
+                PDFPreview(document: model.preview, currentPage: $currentPage, hidden: model.manualCropFile != nil)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .opacity(model.manualCropFile == nil ? 1 : 0)
-                    .allowsHitTesting(model.manualCropFile == nil)
                 if let file = model.manualCropFile {
                     ManualCropView(file: file)
                         .id(file.id)
@@ -276,7 +274,7 @@ struct PreviewPane: View {
                 }
                 Spacer()
                 if model.manualCropFile != nil {
-                    Text("위·아래 점선을 끌어서 자를 위치를 정하세요. 같은 위치가 이 파일의 모든 쪽에 적용돼요.")
+                    Text("점선을 끌어서 자를 위치를 정하세요. 같은 위치가 이 파일의 모든 쪽에 적용돼요.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -296,7 +294,7 @@ struct PreviewPane: View {
     }
 }
 
-/// 여백 수동 조정 화면. 원본 쪽 전체를 보여 주고(잘려 나갈 부분은 흐리게), 위·아래 자르는 선을
+/// 여백 수동 조정 화면. 원본 쪽 전체를 보여 주고(잘려 나갈 부분은 흐리게), 네 변의 자르는 선을
 /// 점선으로 그려 마우스로 끌게 한다. 손을 떼면 그 위치를 손 조정 값으로 저장한다.
 struct ManualCropView: View {
     @EnvironmentObject private var model: AppModel
@@ -306,17 +304,18 @@ struct ManualCropView: View {
     /// 화면용으로 따로 연 문서. A4 합성 작업이 쓰는 문서를 화면 스레드에서 같이 건드리지 않으려고 둔다.
     @State private var document: PDFDocument?
     @State private var image: NSImage?
-    /// 끄는 중인 점선 위치(페이지 pt). 손을 떼면 저장하고 nil로 돌린다.
-    @State private var draft: (top: CGFloat, bottom: CGFloat)?
+    /// 끄는 중인 범위(페이지 pt). 손을 떼면 저장하고 nil로 돌린다.
+    @State private var draft: CGRect?
 
     private var pages: [Int] { file.pageIndices(for: model.options.variant) }
     private var pageIndex: Int { pages[min(max(position, 0), max(pages.count - 1, 0))] }
     private var pageSize: CGSize { file.geometry[pageIndex].size }
     private var base: CGRect { Imposer.baseCrop(file: file, pageIndex: pageIndex, options: model.options) }
     private var committed: CGRect { Imposer.crop(file: file, pageIndex: pageIndex, options: model.options) }
-    private var current: CGRect {
-        guard let d = draft else { return committed }
-        return CGRect(x: committed.minX, y: d.bottom, width: committed.width, height: d.top - d.bottom)
+    private var current: CGRect { draft ?? committed }
+    private var adjust: CropAdjustment { model.options.adjustment(for: file.url) }
+    private var hasEdgeAdjustment: Bool {
+        adjust.top != 0 || adjust.bottom != 0 || adjust.left != 0 || adjust.right != 0
     }
 
     var body: some View {
@@ -336,7 +335,7 @@ struct ManualCropView: View {
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                 Button("원래대로") { reset() }
-                    .disabled(model.options.adjustment(for: file.url).top == 0 && model.options.adjustment(for: file.url).bottom == 0)
+                    .disabled(!hasEdgeAdjustment)
                 Button("완료") { model.manualCropFileID = nil }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
@@ -362,31 +361,39 @@ struct ManualCropView: View {
         image = page.thumbnail(of: CGSize(width: width, height: width * size.height / size.width), for: .cropBox)
     }
 
+    /// 네 변 조정만 지우고 '자동 자르기 끄기'는 그대로 둔다.
     private func reset() {
-        var a = model.options.adjustment(for: file.url)
-        a.top = 0
-        a.bottom = 0
+        let a = CropAdjustment(wholePage: adjust.wholePage)
         model.options.adjustments[file.url] = a.isDefault ? nil : a
     }
 
     private func commit() {
         guard let d = draft else { return }
-        let a = CropGuides.adjustment(top: d.top, bottom: d.bottom, base: base,
-                                      keeping: model.options.adjustment(for: file.url))
+        let a = CropGuides.adjustment(crop: d, base: base, keeping: adjust)
         model.options.adjustments[file.url] = a.isDefault ? nil : a
         draft = nil
     }
 
+    /// 화면에 그릴 때의 배치(페이지 → 화면 좌표).
+    private struct Layout {
+        let origin: CGPoint, scale: CGFloat, page: CGSize
+        var width: CGFloat { page.width * scale }
+        var height: CGFloat { page.height * scale }
+        func x(_ px: CGFloat) -> CGFloat { origin.x + px * scale }
+        func y(_ py: CGFloat) -> CGFloat { origin.y + (page.height - py) * scale }
+        /// 화면 좌표 → 페이지 좌표(가로·세로)
+        func pageX(_ vx: CGFloat) -> CGFloat { (vx - origin.x) / scale }
+        func pageY(_ vy: CGFloat) -> CGFloat { page.height - (vy - origin.y) / scale }
+    }
+
     private func canvas(_ size: CGSize, global: CGRect) -> some View {
         let page = pageSize
-        let s = max(0.01, min((size.width - 140) / page.width, (size.height - 40) / page.height))
+        // 오른쪽에는 위·아래 값 표시, 위쪽에는 좌우 값 표시 자리를 남긴다.
+        let s = max(0.01, min((size.width - 150) / page.width, (size.height - 90) / page.height))
         let w = page.width * s, h = page.height * s
-        let origin = CGPoint(x: (size.width - w) / 2, y: (size.height - h) / 2)
-        func vx(_ px: CGFloat) -> CGFloat { origin.x + px * s }
-        func vy(_ py: CGFloat) -> CGFloat { origin.y + (page.height - py) * s }
+        let L = Layout(origin: CGPoint(x: (size.width - w) / 2, y: (size.height - h) / 2 + 10), scale: s, page: page)
         let c = current
-        let a = model.options.adjustment(for: file.url)
-        DebugSnapshot.recordGuide(topY: global.minY + vy(c.maxY), centerX: global.minX + origin.x + w / 2, scale: s)
+        DebugSnapshot.recordGuide(topY: global.minY + L.y(c.maxY), centerX: global.minX + L.x(c.midX), scale: s)
 
         return ZStack(alignment: .topLeading) {
             Group {
@@ -398,79 +405,138 @@ struct ManualCropView: View {
             }
             .frame(width: w, height: h)
             .shadow(color: .black.opacity(0.25), radius: 4, y: 1)
-            .offset(x: origin.x, y: origin.y)
+            .offset(x: L.origin.x, y: L.origin.y)
 
             // 잘려 나갈 부분은 흐리게 덮는다(여백이 다시 보이되 잘린다는 걸 알 수 있게).
             Path { p in
-                p.addRect(CGRect(x: origin.x, y: origin.y, width: w, height: h))
-                p.addRect(CGRect(x: vx(c.minX), y: vy(c.maxY), width: c.width * s, height: c.height * s))
+                p.addRect(CGRect(x: L.origin.x, y: L.origin.y, width: w, height: h))
+                p.addRect(CGRect(x: L.x(c.minX), y: L.y(c.maxY), width: c.width * s, height: c.height * s))
             }
             .fill(Color.black.opacity(0.22), style: FillStyle(eoFill: true))
             .allowsHitTesting(false)
 
-            // 자동으로 잡은 위치(손으로 옮겼을 때만 연하게 표시)
-            if a.top != 0 || draft != nil { referenceLine(y: vy(base.maxY), from: origin.x, width: w) }
-            if a.bottom != 0 || draft != nil { referenceLine(y: vy(base.minY), from: origin.x, width: w) }
-
-            guide(.top, y: vy(c.maxY), label: "위 여백 \(mmText(page.height - c.maxY))",
-                  origin: origin, width: w, scale: s, page: page)
-            guide(.bottom, y: vy(c.minY), label: "아래 여백 \(mmText(c.minY))",
-                  origin: origin, width: w, scale: s, page: page)
+            // 자동으로 잡은 위치(옮긴 변만 연하게 표시)
+            ForEach(CropGuides.Edge.allCases, id: \.self) { edge in
+                if draft != nil || moved(edge) { referenceLine(edge, base: base, layout: L) }
+            }
+            ForEach(CropGuides.Edge.allCases, id: \.self) { edge in
+                guide(edge, crop: c, layout: L)
+            }
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
         .coordinateSpace(name: "canvas")
     }
 
-    private func mmText(_ pt: CGFloat) -> String {
-        String(format: "%.1fmm", max(0, pt) / pointsPerMM)
-    }
-
-    private func referenceLine(y: CGFloat, from x: CGFloat, width: CGFloat) -> some View {
-        Path { p in
-            p.move(to: CGPoint(x: x, y: y))
-            p.addLine(to: CGPoint(x: x + width, y: y))
+    private func moved(_ edge: CropGuides.Edge) -> Bool {
+        switch edge {
+        case .top: return adjust.top != 0
+        case .bottom: return adjust.bottom != 0
+        case .left: return adjust.left != 0
+        case .right: return adjust.right != 0
         }
-        .stroke(Color.secondary.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [2, 4]))
-        .allowsHitTesting(false)
     }
 
-    /// 끌 수 있는 점선 하나. 페이지 폭보다 조금 길게 그리고, 오른쪽에 여백 값을 붙인다.
-    private func guide(_ edge: CropGuides.Edge, y: CGFloat, label: String, origin: CGPoint,
-                       width: CGFloat, scale s: CGFloat, page: CGSize) -> some View {
-        let x0 = origin.x - 14, x1 = origin.x + width + 14
-        return ZStack(alignment: .topLeading) {
-            Path { p in
-                p.move(to: CGPoint(x: x0, y: y))
-                p.addLine(to: CGPoint(x: x1, y: y))
-            }
-            .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
+    /// 점선의 화면 위치(가로선이면 y, 세로선이면 x)와 여백 값(원본 쪽 가장자리에서 점선까지).
+    private func place(_ edge: CropGuides.Edge, _ r: CGRect, _ L: Layout) -> (pos: CGFloat, marginPt: CGFloat) {
+        switch edge {
+        case .top: return (L.y(r.maxY), L.page.height - r.maxY)
+        case .bottom: return (L.y(r.minY), r.minY)
+        case .left: return (L.x(r.minX), r.minX)
+        case .right: return (L.x(r.maxX), L.page.width - r.maxX)
+        }
+    }
 
-            Text(label)
+    private func isHorizontal(_ edge: CropGuides.Edge) -> Bool { edge == .top || edge == .bottom }
+
+    private func linePath(_ edge: CropGuides.Edge, at pos: CGFloat, _ L: Layout, overhang: CGFloat) -> Path {
+        Path { p in
+            if isHorizontal(edge) {
+                p.move(to: CGPoint(x: L.origin.x - overhang, y: pos))
+                p.addLine(to: CGPoint(x: L.origin.x + L.width + overhang, y: pos))
+            } else {
+                p.move(to: CGPoint(x: pos, y: L.origin.y - overhang))
+                p.addLine(to: CGPoint(x: pos, y: L.origin.y + L.height + overhang))
+            }
+        }
+    }
+
+    private func referenceLine(_ edge: CropGuides.Edge, base: CGRect, layout L: Layout) -> some View {
+        linePath(edge, at: place(edge, base, L).pos, L, overhang: 0)
+            .stroke(Color.secondary.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [2, 4]))
+            .allowsHitTesting(false)
+    }
+
+    /// 끌 수 있는 점선 하나. 위·아래 값은 오른쪽에, 왼쪽·오른쪽 값은 쪽 위에 붙인다.
+    private func guide(_ edge: CropGuides.Edge, crop c: CGRect, layout L: Layout) -> some View {
+        let (pos, margin) = place(edge, c, L)
+        let name: String = switch edge {
+        case .top: "위"
+        case .bottom: "아래"
+        case .left: "왼쪽"
+        case .right: "오른쪽"
+        }
+        let horizontal = isHorizontal(edge)
+        let labelPoint = horizontal
+            ? CGPoint(x: L.origin.x + L.width + 14 + 58, y: pos)
+            : CGPoint(x: pos, y: L.origin.y - 26)
+        return ZStack(alignment: .topLeading) {
+            linePath(edge, at: pos, L, overhang: horizontal ? 14 : 10)
+                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
+                .allowsHitTesting(false)
+
+            Text("\(name) 여백 \(String(format: "%.1f", max(0, margin) / pointsPerMM))mm")
                 .font(.caption.monospacedDigit())
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(Capsule().fill(Color.accentColor))
                 .foregroundStyle(.white)
                 .fixedSize()
-                .position(x: x1 + 4 + 48, y: y)
+                .position(labelPoint)
+                .allowsHitTesting(false)
 
-            // 잡기 쉬운 넓은 손잡이(보이지 않음)
+            // 잡기 쉬운 넓은 손잡이(보이지 않음). 마우스를 올리면 양쪽 화살표 커서가 된다.
             Rectangle()
                 .fill(Color.clear)
                 .contentShape(Rectangle())
-                .frame(width: x1 - x0 + 110, height: 18)
-                .position(x: (x0 + x1 + 110) / 2, y: y)
-                .onHover { inside in (inside ? NSCursor.resizeUpDown : NSCursor.arrow).set() }
+                .frame(width: horizontal ? L.width + 28 : 16, height: horizontal ? 16 : L.height + 20)
+                .position(horizontal ? CGPoint(x: L.origin.x + L.width / 2, y: pos)
+                                     : CGPoint(x: pos, y: L.origin.y + L.height / 2))
+                .modifier(ResizeCursor(edge: edge))
                 .gesture(
                     DragGesture(minimumDistance: 0, coordinateSpace: .named("canvas"))
                         .onChanged { v in
-                            let start = draft ?? (committed.maxY, committed.minY)
-                            let py = page.height - (v.location.y - origin.y) / s
-                            draft = CropGuides.move(edge, to: py, top: start.top, bottom: start.bottom,
-                                                    pageHeight: page.height)
+                            let value = horizontal ? L.pageY(v.location.y) : L.pageX(v.location.x)
+                            draft = CropGuides.move(edge, to: value, crop: draft ?? committed, pageSize: L.page)
                         }
                         .onEnded { _ in commit() }
                 )
+        }
+    }
+}
+
+/// 점선 위에서 쓰는 양쪽 화살표 커서. macOS 15부터는 창 가장자리 크기 조절과 같은 커서를 쓰고,
+/// 그 전에는 AppKit의 위아래·좌우 크기 조절 커서로 대신한다.
+private struct ResizeCursor: ViewModifier {
+    let edge: CropGuides.Edge
+
+    func body(content: Content) -> some View {
+        if #available(macOS 15.0, *) {
+            content.pointerStyle(.frameResize(position: position, directions: .all))
+        } else {
+            content.onHover { inside in
+                let cursor: NSCursor = (edge == .top || edge == .bottom) ? .resizeUpDown : .resizeLeftRight
+                (inside ? cursor : NSCursor.arrow).set()
+            }
+        }
+    }
+
+    @available(macOS 15.0, *)
+    private var position: FrameResizePosition {
+        switch edge {
+        case .top: return .top
+        case .bottom: return .bottom
+        case .left: return .leading
+        case .right: return .trailing
         }
     }
 }
@@ -539,6 +605,9 @@ final class PreviewContainerView: NSView {
 struct PDFPreview: NSViewRepresentable {
     let document: PDFDocument?
     @Binding var currentPage: Int
+    /// 수동 조정 중에는 완전히 숨긴다. 투명하게만 두면 PDF 뷰의 텍스트 선택(I자) 커서 영역이 살아 있어
+    /// 점선 위의 크기 조절 커서를 덮어쓴다.
+    var hidden = false
 
     func makeCoordinator() -> Coordinator { Coordinator(currentPage: $currentPage) }
 
@@ -555,6 +624,7 @@ struct PDFPreview: NSViewRepresentable {
 
     func updateNSView(_ container: PreviewContainerView, context: Context) {
         context.coordinator.currentPage = $currentPage
+        container.isHidden = hidden
         let view = container.pdfView
         guard view.document !== document else { return }
         let pageIndex = view.currentPage.flatMap { view.document?.index(for: $0) } ?? 0
