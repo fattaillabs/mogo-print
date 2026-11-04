@@ -36,7 +36,24 @@ PDF를 창에 끌어다 놓으면 바깥 여백을 자동으로 잘라 A4에 맞
 
 ## 설치
 
-아직 빌드된 앱은 배포하지 않으므로 소스에서 직접 빌드합니다. macOS 14 이상과 Xcode(또는 Command Line Tools)가 필요합니다.
+1. **[최신 버전 내려받기 (MogoPrint.dmg)](https://github.com/fattaillabs/mogo-print/releases/latest/download/MogoPrint.dmg)**
+2. 내려받은 `MogoPrint.dmg`를 더블클릭해 엽니다.
+3. 열린 창에서 `MogoPrint`를 옆의 `응용 프로그램` 폴더로 끌어다 놓습니다.
+4. 응용 프로그램 폴더나 Launchpad에서 `MogoPrint`를 실행합니다.
+   처음 실행할 때 "인터넷에서 다운로드한 앱입니다. 열겠습니까?"라는 확인 창이 뜨면 `열기`를 누릅니다.
+5. 설치가 끝나면 바탕화면이나 Finder 사이드바의 `모고 프린트` 디스크를 꺼내고, 내려받은 DMG 파일은 지워도 됩니다.
+
+- **지원 환경**: macOS 14 Sonoma 이상, Apple Silicon(M1 이후)과 Intel 맥 모두 지원합니다.
+- **보안**: 애플의 공증(notarization)을 받은 앱이라 "확인되지 않은 개발자" 경고 없이 열립니다.
+- **다운로드 폴더 접근**: `평가원에서 받기`를 처음 쓸 때 "다운로드 폴더에 접근하려고 합니다"라는 창이 뜹니다. 받은 시험지를 저장하려면 `허용`을 누르세요.
+- **업데이트**: 새 버전 DMG를 받아 같은 방법으로 응용 프로그램 폴더에 덮어씁니다. 고른 선택과목 같은 설정은 그대로 남습니다.
+- **삭제**: 응용 프로그램 폴더의 `MogoPrint`를 휴지통으로 옮깁니다. 받은 시험지는 다운로드 폴더의 `모고 프린트` 폴더에 그대로 있습니다.
+
+지난 버전과 바뀐 내용은 [릴리스 페이지](https://github.com/fattaillabs/mogo-print/releases)에서 볼 수 있습니다.
+
+### 소스에서 빌드하기
+
+직접 빌드하려면 Xcode(또는 Command Line Tools)가 필요합니다.
 
 ```bash
 git clone https://github.com/fattaillabs/mogo-print.git
@@ -44,8 +61,6 @@ cd mogo-print/macos
 bash build_app.sh
 open build/MogoPrint.app
 ```
-
-빌드한 `build/MogoPrint.app`을 응용 프로그램 폴더로 옮기면 다른 앱처럼 Launchpad나 Dock에서 실행할 수 있습니다.
 
 ## 사용법
 
@@ -194,8 +209,9 @@ shows a preview, and prints double-sided in grayscale. It can also download past
 and inserts blank pages so every subject starts on a new sheet. A command line tool, `mogo-cli`,
 does the same from the terminal.
 
-- macOS 14 or later for now. A Windows version is planned.
-- Build: `cd macos && bash build_app.sh`, then open `build/MogoPrint.app`.
+- macOS 14 or later (Apple Silicon and Intel). A Windows version is planned.
+- Install: download [MogoPrint.dmg](https://github.com/fattaillabs/mogo-print/releases/latest/download/MogoPrint.dmg) (signed and notarized), open it, and drag MogoPrint to Applications.
+- Build from source: `cd macos && bash build_app.sh`, then open `build/MogoPrint.app`.
 - Try it with the sample PDFs in `docs/demo` (made for this project, not real exams).
 - Real exam PDFs are not included because they are copyrighted by KICE. This project is not affiliated with KICE.
 - MIT licensed.

@@ -6,12 +6,30 @@ SwiftUI와 PDFKit으로 만든 macOS 앱과 명령줄 도구입니다. macOS 14 
 
 ```bash
 bash build_app.sh            # build/MogoPrint.app 생성 (명령줄 도구 mogo-cli는 앱의 Contents/MacOS에 함께 들어감)
+ARCHS="arm64 x86_64" bash build_app.sh   # Apple Silicon·Intel 겸용
 open build/MogoPrint.app
 swift test                   # 테스트 실행
 ```
 
 Xcode에서 작업하려면 `Package.swift`를 엽니다. 다만 Dock 아이콘에 파일을 놓는 기능과 앱 아이콘은
 `Resources/`가 들어간 .app 번들(위 스크립트로 만든 앱)에서만 동작합니다.
+
+## 배포
+
+`release.sh`가 Apple Silicon·Intel 겸용 빌드, Developer ID 서명, 애플 공증, DMG 만들기(서명·공증)를 한 번에 합니다.
+
+```bash
+# 공증 자격 증명: notarytool 키체인 프로필이나 App Store Connect API 키 중 하나
+NOTARY_PROFILE=<프로필 이름> bash release.sh 0.1.0
+NOTARY_KEY=<AuthKey_XXXX.p8 경로> NOTARY_KEY_ID=<키 ID> NOTARY_ISSUER=<Issuer ID> bash release.sh 0.1.0
+
+gh release create v0.1.0 build/release/MogoPrint.dmg --title "모고 프린트 0.1.0" --notes-file <릴리스 노트>
+```
+
+- 키체인에 `Developer ID Application` 인증서가 있어야 합니다(다른 인증서는 `SIGN_ID`로 지정).
+- 릴리스 파일 이름은 항상 `MogoPrint.dmg`로 둡니다. README의 고정 링크 `releases/latest/download/MogoPrint.dmg`가 이 이름을 가리킵니다.
+- 공증 없이 서명·DMG까지만 시험하려면 `SKIP_NOTARIZE=1`.
+- 스크립트 끝에서 `spctl`로 DMG와 앱이 "Notarized Developer ID"로 통과하는지 확인합니다.
 
 ## 구조
 
@@ -89,6 +107,7 @@ build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/snap \
 
 ## 할 일
 
-- [ ] 서명·공증한 앱을 GitHub Releases로 배포
+- [x] 서명·공증한 앱을 GitHub Releases로 배포 (release.sh)
+- [ ] 앱 안에서 새 버전 알림(Sparkle 등)
 - [x] 평가원에서 바로 받기 (EBSi 교육청 학력평가는 아직)
 - [ ] Windows 버전 (`../windows/`, 규칙은 `../docs/ALGORITHM.md`)
