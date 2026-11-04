@@ -3,7 +3,7 @@
 //     cd macos
 //     bash build_app.sh
 //     build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/mogo-shots --snapshot-appearance light \
-//       --snapshot-size 1180x780 --snapshot-copies 2 \
+//       --snapshot-size 1180x800 --snapshot-copies 2 --snapshot-elective 언매 --snapshot-elective 미적 \
 //       --snapshot-drop "$PWD/../docs/demo/예시_국어_문제지.pdf" --snapshot-drop "$PWD/../docs/demo/예시_수학_문제지.pdf" \
 //       --snapshot-quit
 //     swiftc -O Sources/MogoCore/*.swift Tools/readme-images/main.swift -o /tmp/readme-images

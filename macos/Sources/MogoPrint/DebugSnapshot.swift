@@ -12,7 +12,8 @@ import UniformTypeIdentifiers
 ///   draggingEntered → performDragOperation 경로를 가짜 드래그 정보로 호출한다.
 /// - `--snapshot-drop-more`: 미리보기 위에 하나 더 놓는다(PDF 뷰가 드롭을 가로채지 않는지).
 /// - 저장: empty.png, main.png/pdf, manual.png, manual-dragged.png, adjusted.pdf, confirm.png, report.json (PNG는 2배 해상도)
-/// - 캡처용: `--snapshot-appearance light`, `--snapshot-size 1180x800`(창 내용 크기), `--snapshot-copies 2`(부수)
+/// - 캡처용: `--snapshot-appearance light`, `--snapshot-size 1180x800`(창 내용 크기), `--snapshot-copies 2`(부수),
+///   `--snapshot-elective 언매`(선택과목, 여러 번). 점검 중에는 저장된 선택과목을 읽지도 쓰지도 않는다.
 /// - `--snapshot-quit`처럼 값 없는 옵션은 반드시 맨 뒤에 둔다(아래 forcedColorScheme 설명).
 @MainActor
 enum DebugSnapshot {
@@ -70,6 +71,7 @@ enum DebugSnapshot {
             mainWindow?.setContentSize(CGSize(width: size[0], height: size[1]))
         }
         if let copies = values("--snapshot-copies").first.flatMap({ Int($0) }) { model.printSettings.copies = copies }
+        for e in values("--snapshot-elective").compactMap({ Elective(name: $0) }) { model.options.electives[e.subject] = e }
         let drops = values("--snapshot-drop").map { URL(fileURLWithPath: $0) }
         let more = values("--snapshot-drop-more").map { URL(fileURLWithPath: $0) }
 

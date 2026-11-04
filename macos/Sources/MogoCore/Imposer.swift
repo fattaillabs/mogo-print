@@ -33,6 +33,8 @@ public struct ImpositionOptions: Equatable, Sendable {
     public var padSectionsToEven: Bool = true
     /// 마지막 파일 뒤에도 빈 쪽을 넣어 전체를 짝수 쪽으로 만들지(양면으로 여러 부 인쇄할 때).
     public var padEndToEven: Bool = false
+    /// 과목별로 고른 선택과목(국어·수학). 없으면 그 과목의 선택과목 쪽을 모두 넣는다.
+    public var electives: [ElectiveSubject: Elective] = [:]
     /// 원본보다 크게 키우지 않는다(정답표처럼 원래 A4인 파일).
     public var maxScale: CGFloat = 1
     /// 파일별 손 조정(파일 경로 기준).
@@ -87,9 +89,9 @@ public enum Imposer {
         let usable = CGSize(width: a4Size.width - 2 * margin, height: a4Size.height - 2 * margin)
 
         var sections: [ExamSection] = []
-        let nonEmpty = files.filter { !$0.pageIndices(for: options.variant).isEmpty }
+        let nonEmpty = files.filter { !$0.pageIndices(for: options).isEmpty }
         for (n, file) in nonEmpty.enumerated() {
-            let indices = file.pageIndices(for: options.variant)
+            let indices = file.pageIndices(for: options)
             let adjust = options.adjustment(for: file.url)
 
             let bases = autoCrops(file: file, indices: indices, adjust: adjust, pad: pad)
@@ -134,7 +136,7 @@ public enum Imposer {
 
     /// 손 조정 전 자동 범위(수동 조정 화면의 기준). 그 쪽과 크기가 같은, 고른 형의 쪽들을 합친 범위다.
     public static func baseCrop(file: SourceFile, pageIndex i: Int, options: ImpositionOptions) -> CGRect {
-        let crops = autoCrops(file: file, indices: file.pageIndices(for: options.variant),
+        let crops = autoCrops(file: file, indices: file.pageIndices(for: options),
                               adjust: options.adjustment(for: file.url), pad: options.paddingMM * pointsPerMM)
         return crops[file.geometry[i].sizeKey] ?? CGRect(origin: .zero, size: file.geometry[i].size)
     }

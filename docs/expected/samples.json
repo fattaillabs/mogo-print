@@ -9,6 +9,7 @@
         "right" : 25.8,
         "top" : 37.1
       },
+      "elective_labels" : "----------------",
       "even_page_count" : 16,
       "labels" : "EEEEEEEEEEEEEEEE",
       "odd_page_count" : 16,
@@ -28,6 +29,7 @@
         "right" : 25.8,
         "top" : 37.1
       },
+      "elective_labels" : "----------------",
       "even_page_count" : 16,
       "labels" : "OOOOOOOOOOOOOOOO",
       "odd_page_count" : 16,
@@ -47,6 +49,7 @@
         "right" : 25.8,
         "top" : 37.1
       },
+      "elective_labels" : "------------SSSSLLLL",
       "even_page_count" : 20,
       "labels" : "EEEEEEEEEEEEEEEEEEEE",
       "odd_page_count" : 20,
@@ -66,6 +69,7 @@
         "right" : 25.8,
         "top" : 37.1
       },
+      "elective_labels" : "------------SSSSLLLL",
       "even_page_count" : 20,
       "labels" : "OOOOOOOOOOOOOOOOOOOO",
       "odd_page_count" : 20,
@@ -85,6 +89,7 @@
         "right" : 25.8,
         "top" : 37.1
       },
+      "elective_labels" : "------------SSSSLLLL",
       "even_page_count" : 20,
       "labels" : "OOOOOOOOOOOOOOOOOOOO",
       "odd_page_count" : 20,
@@ -104,6 +109,7 @@
         "right" : 24.8,
         "top" : 37.1
       },
+      "elective_labels" : "------------SSSSLLLL------------SSSSLLLL",
       "even_page_count" : 20,
       "labels" : "OOOOOOOOOOOOOOOOOOOOEEEEEEEEEEEEEEEEEEEE",
       "odd_page_count" : 20,
@@ -123,6 +129,7 @@
         "right" : 30.7,
         "top" : 28.5
       },
+      "elective_labels" : "--",
       "even_page_count" : 1,
       "labels" : "OE",
       "odd_page_count" : 1,
@@ -142,6 +149,7 @@
         "right" : 14.6,
         "top" : 33.6
       },
+      "elective_labels" : "----",
       "even_page_count" : 4,
       "labels" : "----",
       "odd_page_count" : 4,
@@ -161,6 +169,7 @@
         "right" : 14.6,
         "top" : 38.6
       },
+      "elective_labels" : "----",
       "even_page_count" : 4,
       "labels" : "----",
       "odd_page_count" : 4,
@@ -180,6 +189,7 @@
         "right" : 14.6,
         "top" : 38.6
       },
+      "elective_labels" : "----",
       "even_page_count" : 4,
       "labels" : "----",
       "odd_page_count" : 4,
@@ -199,6 +209,7 @@
         "right" : 14.6,
         "top" : 38.6
       },
+      "elective_labels" : "----",
       "even_page_count" : 4,
       "labels" : "----",
       "odd_page_count" : 4,
@@ -218,6 +229,7 @@
         "right" : 14.6,
         "top" : 38.6
       },
+      "elective_labels" : "----",
       "even_page_count" : 4,
       "labels" : "----",
       "odd_page_count" : 4,
@@ -237,6 +249,7 @@
         "right" : 14.6,
         "top" : 38.6
       },
+      "elective_labels" : "----",
       "even_page_count" : 4,
       "labels" : "----",
       "odd_page_count" : 4,
@@ -256,6 +269,7 @@
         "right" : 14.6,
         "top" : 38.6
       },
+      "elective_labels" : "----",
       "even_page_count" : 4,
       "labels" : "----",
       "odd_page_count" : 4,
@@ -275,6 +289,7 @@
         "right" : 14.6,
         "top" : 38.6
       },
+      "elective_labels" : "----",
       "even_page_count" : 4,
       "labels" : "----",
       "odd_page_count" : 4,
@@ -294,6 +309,7 @@
         "right" : 14.6,
         "top" : 38.6
       },
+      "elective_labels" : "----",
       "even_page_count" : 4,
       "labels" : "----",
       "odd_page_count" : 4,
@@ -313,6 +329,7 @@
         "right" : 24.8,
         "top" : 37.1
       },
+      "elective_labels" : "--------PPPPCCCCGGGG--------PPPPCCCCGGGG",
       "even_page_count" : 20,
       "labels" : "OOOOOOOOOOOOOOOOOOOOEEEEEEEEEEEEEEEEEEEE",
       "odd_page_count" : 20,
@@ -332,6 +349,7 @@
         "right" : 24.8,
         "top" : 37.1
       },
+      "elective_labels" : "----------------",
       "even_page_count" : 8,
       "labels" : "OOOOOOOOEEEEEEEE",
       "odd_page_count" : 8,
@@ -351,6 +369,7 @@
         "right" : 24.8,
         "top" : 37.6
       },
+      "elective_labels" : "------------SSSSLLLL",
       "even_page_count" : 20,
       "labels" : "--------------------",
       "odd_page_count" : 20,
@@ -370,6 +389,7 @@
         "right" : 24.8,
         "top" : 37.6
       },
+      "elective_labels" : "--------PPPPCCCCGGGG",
       "even_page_count" : 20,
       "labels" : "--------------------",
       "odd_page_count" : 20,
@@ -389,6 +409,7 @@
         "right" : 24.8,
         "top" : 37.6
       },
+      "elective_labels" : "------------SSSSLLLL",
       "even_page_count" : 20,
       "labels" : "--------------------",
       "odd_page_count" : 20,
@@ -408,6 +429,7 @@
         "right" : 24.8,
         "top" : 37.6
       },
+      "elective_labels" : "--------PPPPCCCCGGGG",
       "even_page_count" : 20,
       "labels" : "--------------------",
       "odd_page_count" : 20,
@@ -427,6 +449,7 @@
         "right" : 28.5,
         "top" : 38.6
       },
+      "elective_labels" : "------------SSSSLLLL",
       "even_page_count" : 20,
       "labels" : "--------------------",
       "odd_page_count" : 20,

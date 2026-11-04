@@ -10,6 +10,63 @@ public enum ExamVariant: String, CaseIterable, Identifiable, Sendable {
     public var id: String { rawValue }
 }
 
+/// 선택과목이 있는 과목(2022~2027학년도 국어·수학).
+public enum ElectiveSubject: String, CaseIterable, Identifiable, Sendable, Codable {
+    case korean = "국어"
+    case math = "수학"
+    public var id: String { rawValue }
+    public var electives: [Elective] { Elective.allCases.filter { $0.subject == self } }
+}
+
+/// 선택과목. 쪽 머리말에 "(화법과 작문)"처럼 괄호로 찍힌 과목명으로 알아본다.
+public enum Elective: String, CaseIterable, Identifiable, Sendable, Codable {
+    case speechWriting = "화법과 작문"
+    case languageMedia = "언어와 매체"
+    case probability = "확률과 통계"
+    case calculus = "미적분"
+    case geometry = "기하"
+
+    public var id: String { rawValue }
+
+    public var subject: ElectiveSubject {
+        switch self {
+        case .speechWriting, .languageMedia: return .korean
+        case .probability, .calculus, .geometry: return .math
+        }
+    }
+
+    /// 학생들이 부르는 줄임말.
+    public var shortName: String {
+        switch self {
+        case .speechWriting: return "화작"
+        case .languageMedia: return "언매"
+        case .probability: return "확통"
+        case .calculus: return "미적"
+        case .geometry: return "기하"
+        }
+    }
+
+    /// 기준값 파일에 쓰는 한 글자 기호.
+    public var code: Character {
+        switch self {
+        case .speechWriting: return "S"
+        case .languageMedia: return "L"
+        case .probability: return "P"
+        case .calculus: return "C"
+        case .geometry: return "G"
+        }
+    }
+
+    /// 줄임말·전체 이름(띄어쓰기 무시)으로 찾는다. 예: "언매", "언어와 매체", "미적분"
+    public init?(name: String) {
+        let key = name.replacingOccurrences(of: " ", with: "")
+        guard let found = Elective.allCases.first(where: {
+            $0.shortName == key || $0.rawValue.replacingOccurrences(of: " ", with: "") == key
+        }) else { return nil }
+        self = found
+    }
+}
+
 public let pointsPerMM: CGFloat = 72.0 / 25.4
 public let a4Size = CGSize(width: 595.28, height: 841.89)
 
@@ -41,6 +98,8 @@ public final class SourceFile: Identifiable, @unchecked Sendable {
     /// 페이지별 형 라벨. 라벨이 없는 페이지는 앞 페이지 라벨을 이어받고,
     /// 첫 라벨이 나오기 전 페이지(표지 등)는 nil이라 어느 형을 고르든 들어간다.
     public let pageVariants: [ExamVariant?]
+    /// 페이지별 선택과목. 공통 쪽은 nil.
+    public let pageElectives: [Elective?]
     /// 페이지별 내용(잉크) 영역, 똑바로 세운 좌표계. 빈 페이지는 nil.
     public let inkBounds: [CGRect?]
     /// 페이지별 기하 정보.
@@ -50,6 +109,16 @@ public final class SourceFile: Identifiable, @unchecked Sendable {
     public let pageCount: Int
 
     public var name: String { url.deletingPathExtension().lastPathComponent }
+    /// 이 파일에 든 선택과목(나오는 순서대로).
+    public var electives: [Elective] {
+        var out: [Elective] = []
+        for e in pageElectives.compactMap({ $0 }) where !out.contains(e) { out.append(e) }
+        return out
+    }
+
+    /// 선택과목이 있으면 그 과목(국어·수학).
+    public var electiveSubject: ElectiveSubject? { electives.first?.subject }
+
     /// 홀수형과 짝수형이 한 파일에 같이 들어 있는지.
     public var hasBothVariants: Bool {
         pageVariants.contains(.odd) && pageVariants.contains(.even)
@@ -63,6 +132,7 @@ public final class SourceFile: Identifiable, @unchecked Sendable {
         self.document = doc
         self.pageCount = doc.pageCount
         self.pageVariants = ExamAnalyzer.propagate(analysis.labels)
+        self.pageElectives = analysis.electives
         self.inkBounds = analysis.ink
         self.geometry = analysis.geometry
     }
@@ -77,6 +147,13 @@ public final class SourceFile: Identifiable, @unchecked Sendable {
             }
         }
         return out
+    }
+
+    /// 배치 설정(형·선택과목)에 해당하는 페이지 번호(0부터). 공통 쪽은 언제나 들어간다.
+    public func pageIndices(for options: ImpositionOptions) -> [Int] {
+        let pages = pageIndices(for: options.variant)
+        guard let subject = electiveSubject, let chosen = options.electives[subject] else { return pages }
+        return pages.filter { pageElectives[$0] == nil || pageElectives[$0] == chosen }
     }
 
     /// 선택한 형에 해당하는 페이지 번호(0부터).
@@ -102,6 +179,16 @@ public enum ExamAnalyzer {
         return hasOdd ? .odd : .even
     }
 
+    /// 쪽 글자에서 선택과목을 찾는다. 공백을 지우고, 안내문의 "선택과목(언어와 매체)"는 빼고,
+    /// 남은 글에서 괄호로 싼 과목명 "(화법과 작문)"을 찾는다. 하나만 나올 때만 그 과목으로 본다.
+    public static func electiveLabel(in text: String) -> Elective? {
+        var t = String(String.UnicodeScalarView(text.unicodeScalars.filter { !CharacterSet.whitespacesAndNewlines.contains($0) }))
+        t = t.replacingOccurrences(of: "（", with: "(").replacingOccurrences(of: "）", with: ")")
+        t = t.replacingOccurrences(of: #"선택과목\([^)]*\)"#, with: "", options: .regularExpression)
+        let found = Elective.allCases.filter { t.contains("(\($0.rawValue.replacingOccurrences(of: " ", with: "")))") }
+        return found.count == 1 ? found[0] : nil
+    }
+
     /// 라벨이 없는 페이지는 앞 페이지 라벨을 이어받는다.
     public static func propagate(_ labels: [ExamVariant?]) -> [ExamVariant?] {
         var current: ExamVariant? = nil
@@ -118,6 +205,7 @@ public enum ExamAnalyzer {
 
     struct Analysis {
         var labels: [ExamVariant?]
+        var electives: [Elective?]
         var ink: [CGRect?]
         var geometry: [PageGeometry]
     }
@@ -130,14 +218,17 @@ public enum ExamAnalyzer {
     /// 이 함수가 끝나기 전에는 primary를 다른 곳에서 쓰지 않으므로 안전하다.
     static func analyze(url: URL, pageCount n: Int, primary: PDFDocument? = nil) -> Analysis {
         var labels = [ExamVariant?](repeating: nil, count: n)
+        var electives = [Elective?](repeating: nil, count: n)
         var ink = [CGRect?](repeating: nil, count: n)
         var geometry = [PageGeometry?](repeating: nil, count: n)
         let workers = max(1, min(n / 8, 4, ProcessInfo.processInfo.activeProcessorCount))
+        electives.withUnsafeMutableBufferPointer { electivesBuf in
         labels.withUnsafeMutableBufferPointer { labelsBuf in
             ink.withUnsafeMutableBufferPointer { inkBuf in
                 geometry.withUnsafeMutableBufferPointer { geoBuf in
                     // 각 스레드는 서로 다른 칸에만 쓴다.
                     nonisolated(unsafe) let labelsBuf = labelsBuf
+                    nonisolated(unsafe) let electivesBuf = electivesBuf
                     nonisolated(unsafe) let inkBuf = inkBuf
                     nonisolated(unsafe) let geoBuf = geoBuf
                     nonisolated(unsafe) let primary = primary
@@ -147,14 +238,17 @@ public enum ExamAnalyzer {
                             guard let page = doc.page(at: i), let ref = page.pageRef else { continue }
                             let geo = PageGeometry(page: ref)
                             geoBuf[i] = geo
-                            labelsBuf[i] = variantLabel(in: page.string ?? "")
+                            let text = page.string ?? ""
+                            labelsBuf[i] = variantLabel(in: text)
+                            electivesBuf[i] = electiveLabel(in: text)
                             inkBuf[i] = inkBounds(of: ref, geometry: geo)
                         }
                     }
                 }
             }
         }
-        return Analysis(labels: labels, ink: ink, geometry: geometry.compactMap { $0 })
+        }
+        return Analysis(labels: labels, electives: electives, ink: ink, geometry: geometry.compactMap { $0 })
     }
 
     /// 페이지를 저해상도로 그려서 흰색이 아닌 픽셀의 경계를 찾는다(똑바로 세운 좌표계).

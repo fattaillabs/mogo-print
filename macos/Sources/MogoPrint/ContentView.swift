@@ -86,6 +86,7 @@ struct SidebarView: View {
     private var formHeight: CGFloat {
         var rows = 5
         if model.hasCombinedVariants { rows += 1 }
+        rows += model.electiveSubjects.count
         if model.marginTooSmall { rows += 1 }
         return CGFloat(rows) * 37 + 46
     }
@@ -113,6 +114,13 @@ struct SidebarView: View {
                 if model.hasCombinedVariants {
                     Picker("시험지 형", selection: $model.options.variant) {
                         ForEach(ExamVariant.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                ForEach(model.electiveSubjects) { subject in
+                    Picker("\(subject.rawValue) 선택과목", selection: model.electiveBinding(subject)) {
+                        Text("전체").tag(Elective?.none)
+                        ForEach(subject.electives) { Text($0.shortName).tag(Optional($0)) }
                     }
                     .pickerStyle(.segmented)
                 }
@@ -187,6 +195,11 @@ struct FileRow: View {
                         Text("홀·짝 합본")
                             .padding(.horizontal, 5)
                             .background(Capsule().fill(Color.orange.opacity(0.2)))
+                    }
+                    if let subject = file.electiveSubject, let chosen = model.options.electives[subject] {
+                        Text(chosen.shortName)
+                            .padding(.horizontal, 5)
+                            .background(Capsule().fill(Color.green.opacity(0.18)))
                     }
                     if adjusted {
                         Text("손봄")
@@ -307,7 +320,7 @@ struct ManualCropView: View {
     /// 끄는 중인 범위(페이지 pt). 손을 떼면 저장하고 nil로 돌린다.
     @State private var draft: CGRect?
 
-    private var pages: [Int] { file.pageIndices(for: model.options.variant) }
+    private var pages: [Int] { file.pageIndices(for: model.options) }
     private var pageIndex: Int { pages[min(max(position, 0), max(pages.count - 1, 0))] }
     private var pageSize: CGSize { file.geometry[pageIndex].size }
     private var base: CGRect { Imposer.baseCrop(file: file, pageIndex: pageIndex, options: model.options) }
@@ -683,6 +696,11 @@ struct PrintConfirmView: View {
                 row("설정", "\(s.duplex ? "양면 (긴 쪽 넘김)" : "단면") · \(s.grayscale ? "흑백" : "컬러") · 원본 대비 글자 크기 \(model.displayScale)%")
                 if model.hasCombinedVariants {
                     row("시험지 형", model.options.variant.rawValue)
+                }
+                if !model.electiveSubjects.isEmpty {
+                    row("선택과목", model.electiveSubjects.map { subject in
+                        "\(subject.rawValue) \(model.options.electives[subject]?.shortName ?? "전체")"
+                    }.joined(separator: " · "))
                 }
             }
 

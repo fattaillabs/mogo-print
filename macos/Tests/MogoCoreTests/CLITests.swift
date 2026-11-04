@@ -38,20 +38,33 @@ final class CLITests: XCTestCase {
     func testSummaryOfDemoFolder() throws {
         let r = try run([demo.path])
         XCTAssertEqual(r.code, 0, r.err)
-        XCTAssertTrue(r.out.contains("예시_국어_문제지: 4쪽 → 2쪽"), r.out)
+        XCTAssertTrue(r.out.contains("예시_국어_문제지: 8쪽 → 4쪽"), r.out)
         XCTAssertTrue(r.out.contains("홀·짝 합본→홀수형"), r.out)
-        XCTAssertTrue(r.out.contains("합계: A4 5쪽, 종이 3장"), r.out)
+        XCTAssertTrue(r.out.contains("선택과목→전체(화작·언매)"), r.out)
+        XCTAssertTrue(r.out.contains("합계: A4 9쪽, 종이 5장"), r.out)
+    }
+
+    func testElectiveOption() throws {
+        let r = try run(["--elective", "언매", "--elective", "미적", demo.path])
+        XCTAssertEqual(r.code, 0, r.err)
+        XCTAssertTrue(r.out.contains("예시_국어_문제지: 8쪽 → 3쪽"), r.out)   // 공통 2 + 언매 1
+        XCTAssertTrue(r.out.contains("선택과목→언매"), r.out)
+        XCTAssertTrue(r.out.contains("예시_수학_문제지: 5쪽 → 3쪽"), r.out)   // 공통 2 + 미적 1
+        // 국어가 3쪽(홀수)이라 뒤에 빈 쪽이 들어가 4 + 3 = 7쪽.
+        XCTAssertTrue(r.out.contains("합계: A4 7쪽, 종이 4장"), r.out)
+        XCTAssertEqual(try run(["--elective", "물리", demo.path]).code, 1)
     }
 
     func testJSON() throws {
         let r = try run(["--json", "--variant", "even", demo.path])
         XCTAssertEqual(r.code, 0, r.err)
         let doc = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(r.out.utf8)) as? [String: Any])
-        XCTAssertEqual(doc["output_pages"] as? Int, 5)
+        XCTAssertEqual(doc["output_pages"] as? Int, 9)
         XCTAssertEqual(doc["variant"] as? String, "even")
         let files = try XCTUnwrap(doc["files"] as? [[String: Any]])
         XCTAssertEqual(files.count, 2)
-        XCTAssertEqual(files[0]["used_pages"] as? [Int], [3, 4])
+        XCTAssertEqual(files[0]["used_pages"] as? [Int], [5, 6, 7, 8])
+        XCTAssertEqual(files[0]["electives_in_file"] as? [String], ["화법과 작문", "언어와 매체"])
         XCTAssertEqual(files[0]["both_variants"] as? Bool, true)
         XCTAssertEqual((files[0]["scale"] as? NSNumber)?.doubleValue ?? 0, 0.80, accuracy: 0.02)
     }
@@ -61,7 +74,7 @@ final class CLITests: XCTestCase {
         let r = try run(["--variant", "even", "-o", out.path, demo.appendingPathComponent("예시_국어_문제지.pdf").path])
         XCTAssertEqual(r.code, 0, r.err)
         let doc = try XCTUnwrap(PDFDocument(url: out))
-        XCTAssertEqual(doc.pageCount, 2)
+        XCTAssertEqual(doc.pageCount, 4)
         let box = try XCTUnwrap(doc.page(at: 0)).bounds(for: .mediaBox)
         XCTAssertEqual(box.width, 595.28, accuracy: 0.01)
         XCTAssertEqual(box.height, 841.89, accuracy: 0.01)
@@ -74,13 +87,13 @@ final class CLITests: XCTestCase {
         XCTAssertTrue(r.out.contains("lp -d Test_Printer -n 2"), r.out)
         XCTAssertTrue(r.out.contains("sides=two-sided-long-edge"))
         XCTAssertTrue(r.out.contains("collate=true"))
-        // 양면으로 2부면 마지막 파일 뒤에도 빈 쪽이 들어가 6쪽.
-        XCTAssertTrue(r.out.contains("합계: A4 6쪽"), r.out)
+        // 양면으로 2부면 마지막 파일(수학 5쪽) 뒤에도 빈 쪽이 들어가 4 + 6 = 10쪽.
+        XCTAssertTrue(r.out.contains("합계: A4 10쪽"), r.out)
 
         r = try run(["-p", "--dry-run", "--printer", "Test_Printer", "--single-sided", "--color", demo.path])
         XCTAssertTrue(r.out.contains("sides=one-sided"))
         XCTAssertTrue(r.out.contains("print-color-mode=color"))
-        XCTAssertTrue(r.out.contains("합계: A4 5쪽, 종이 5장"), r.out)
+        XCTAssertTrue(r.out.contains("합계: A4 9쪽, 종이 9장"), r.out)
     }
 
     func testBadArguments() throws {

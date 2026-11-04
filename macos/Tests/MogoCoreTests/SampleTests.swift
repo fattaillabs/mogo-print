@@ -36,6 +36,30 @@ final class SampleTests: XCTestCase {
         XCTAssertTrue(out.page(at: 0)?.string?.contains("저작권") ?? false)
     }
 
+    /// 2022~2027학년도 국어·수학은 공통 쪽 뒤에 선택과목 쪽이 이어진다. 고른 과목만 남는지 본다.
+    func testElectivesOnRealExams() throws {
+        let korean = try XCTUnwrap(SourceFile(url: try sample("2026수능_국어_문제지.pdf")))
+        let math = try XCTUnwrap(SourceFile(url: try sample("2026수능_수학_문제지.pdf")))
+        XCTAssertEqual(korean.electives, [.speechWriting, .languageMedia])
+        XCTAssertEqual(math.electives, [.probability, .calculus, .geometry])
+
+        var o = ImpositionOptions()
+        o.electives = [.korean: .languageMedia, .math: .calculus]
+        XCTAssertEqual(korean.pageIndices(for: o), Array(0..<12) + Array(16..<20))   // 공통 1~12쪽 + 언매 17~20쪽
+        XCTAssertEqual(math.pageIndices(for: o), Array(0..<8) + Array(12..<16))      // 공통 1~8쪽 + 미적 13~16쪽
+        o.variant = .even
+        o.electives[.math] = .geometry
+        XCTAssertEqual(math.pageIndices(for: o), Array(20..<28) + Array(36..<40))    // 짝수형 공통 + 기하
+
+        // 모의평가·교육청 학력평가도 같은 구조다.
+        for path in ["2027_6월모평_국어_문제지.pdf", "2027_9월모평_수학_문제지.pdf", "참고_2026_7월학평(교육청)_국어_문제지.pdf"] {
+            let f = try XCTUnwrap(SourceFile(url: try sample(path)), path)
+            XCTAssertEqual(f.electives.count, f.electiveSubject == .korean ? 2 : 3, path)
+        }
+        // 선택과목 이전(2019) 시험지는 판정하지 않는다.
+        XCTAssertTrue(try XCTUnwrap(SourceFile(url: try sample("2019수능_국어/국어_홀.pdf"))).electives.isEmpty)
+    }
+
     func testSeparateOddEvenFilesKeepAllPages() throws {
         let odd = try XCTUnwrap(SourceFile(url: try sample("2019수능_국어/국어_홀.pdf")))
         let even = try XCTUnwrap(SourceFile(url: try sample("2019수능_국어/국어_짝.pdf")))

@@ -125,3 +125,59 @@ final class AnalyzerTests: XCTestCase {
         XCTAssertEqual(file.pageIndices(for: .even).count, 20)
     }
 }
+
+final class ElectiveTests: XCTestCase {
+    func testElectiveLabel() {
+        XCTAssertEqual(ExamAnalyzer.electiveLabel(in: "2026학년도 대학수학능력시험 문제지\n1\n(화법과 작문)\n제1교시"), .speechWriting)
+        XCTAssertEqual(ExamAnalyzer.electiveLabel(in: "4 (언어와 매체) 홀수형"), .languageMedia)
+        XCTAssertEqual(ExamAnalyzer.electiveLabel(in: "수학 영역（확률과 통계）"), .probability) // 전각 괄호
+        XCTAssertEqual(ExamAnalyzer.electiveLabel(in: "( 미 적 분 )"), .calculus)               // 띄어쓰기 무시
+        XCTAssertEqual(ExamAnalyzer.electiveLabel(in: "(기하)"), .geometry)
+        // 공통 마지막 쪽의 안내문은 선택과목 쪽이 아니다.
+        XCTAssertNil(ExamAnalyzer.electiveLabel(in: "◦이어서, ｢선택과목(화법과 작문)｣ 문제가 제시되오니, 자신이 선택한 과목인지 확인하시오."))
+        // 선택과목 쪽 안에 다음 과목 안내가 있어도 그 쪽의 과목으로 본다.
+        XCTAssertEqual(ExamAnalyzer.electiveLabel(in: "4 (화법과 작문) 홀수형 … 「선택과목(언어와 매체)」 문제가 제시되오니"), .speechWriting)
+        // 괄호 없이 지문에 나온 낱말, 두 과목이 함께 나오는 쪽은 판정하지 않는다.
+        XCTAssertNil(ExamAnalyzer.electiveLabel(in: "기하학적 무늬와 미적분의 역사"))
+        XCTAssertNil(ExamAnalyzer.electiveLabel(in: "(확률과 통계) (기하)"))
+        XCTAssertNil(ExamAnalyzer.electiveLabel(in: "국어 영역"))
+    }
+
+    func testElectiveNames() {
+        XCTAssertEqual(Elective(name: "언매"), .languageMedia)
+        XCTAssertEqual(Elective(name: "언어와 매체"), .languageMedia)
+        XCTAssertEqual(Elective(name: "확률과통계"), .probability)
+        XCTAssertNil(Elective(name: "물리학"))
+        XCTAssertEqual(ElectiveSubject.korean.electives, [.speechWriting, .languageMedia])
+        XCTAssertEqual(ElectiveSubject.math.electives, [.probability, .calculus, .geometry])
+    }
+
+    /// 홀·짝 합본에 선택과목까지 든 파일: 형과 선택과목을 함께 고른다. 공통 쪽은 언제나 들어간다.
+    func testVariantAndElectiveTogether() throws {
+        let box = [CGRect(x: 100, y: 100, width: 600, height: 900)]
+        var pages: [TestPDF.Page] = []
+        for v in ["홀수형", "짝수형"] {
+            pages.append(.init(size: TestPDF.a3, text: "국어 영역 \(v)", boxes: box))
+            pages.append(.init(size: TestPDF.a3, text: "이어서 「선택과목(화법과 작문)」", boxes: box))
+            pages.append(.init(size: TestPDF.a3, text: "(화법과 작문)", boxes: box))
+            pages.append(.init(size: TestPDF.a3, text: "(언어와 매체)", boxes: box))
+        }
+        let url = TestPDF.make(pages, at: TestPDF.tempDir().appendingPathComponent("k.pdf"))
+        let f = try XCTUnwrap(SourceFile(url: url))
+        XCTAssertEqual(f.pageElectives, [nil, nil, .speechWriting, .languageMedia, nil, nil, .speechWriting, .languageMedia])
+        XCTAssertEqual(f.electives, [.speechWriting, .languageMedia])
+        XCTAssertEqual(f.electiveSubject, .korean)
+
+        var o = ImpositionOptions()
+        XCTAssertEqual(f.pageIndices(for: o), [0, 1, 2, 3])          // 홀수형, 선택과목 전체
+        o.electives[.korean] = .languageMedia
+        XCTAssertEqual(f.pageIndices(for: o), [0, 1, 3])
+        o.variant = .even
+        XCTAssertEqual(f.pageIndices(for: o), [4, 5, 7])
+        o.electives[.math] = .calculus                                // 다른 과목 선택은 영향 없음
+        XCTAssertEqual(f.pageIndices(for: o), [4, 5, 7])
+        o.variant = .all
+        XCTAssertEqual(f.pageIndices(for: o), [0, 1, 3, 4, 5, 7])
+        XCTAssertEqual(Imposer.plan(files: [f], options: o).first?.pageIndices, [0, 1, 3, 4, 5, 7])
+    }
+}

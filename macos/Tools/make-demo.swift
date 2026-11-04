@@ -74,7 +74,11 @@ let questions = [
     ("윗글의 ㉠에 대한 설명으로 가장 적절한 것은?", ["종이의 모양을 바꾸어 글자를 키운다.", "내용이 없는 부분을 잘라 종이를 더 넓게 쓴다.", "줄이는 비율을 가로와 세로에 다르게 적용한다.", "인쇄할 수 없는 띠를 없애는 방법이다.", "양면 인쇄의 방향을 정하는 방법이다."]),
 ]
 
-func header(_ ctx: CGContext, subject: String, variant: String, page: Int, total: Int, first: Bool) {
+/// 쪽 머리말. 선택과목 쪽이면 제목 아래에 "(화법과 작문)"처럼 과목명을 괄호로 찍는다(실제 시험지와 같은 방식).
+/// 돌려주는 값은 본문이 시작하는 높이.
+@discardableResult
+func header(_ ctx: CGContext, subject: String, variant: String, page: Int, total: Int, first: Bool,
+            elective: String? = nil) -> CGFloat {
     let top = content.maxY
     draw("2027학년도 모고 프린트 예시 문제지", in: CGRect(x: content.minX, y: top - 28, width: content.width, height: 28),
          ctx, font: font(sans, 20), lineSpacing: 0, align: .center)
@@ -92,7 +96,13 @@ func header(_ ctx: CGContext, subject: String, variant: String, page: Int, total
     let box = CGRect(x: content.maxX - (first ? 120 : 96), y: titleY + 6, width: first ? 120 : 96, height: first ? 46 : 36)
     ctx.setLineWidth(2); ctx.stroke(box)
     drawCentered(variant, in: box, ctx, font: font(sansBold, first ? 24 : 18))
-    line(ctx, CGPoint(x: content.minX, y: titleY - 8), CGPoint(x: content.maxX, y: titleY - 8), width: 2)
+    var ruleY = titleY - 8
+    if let elective {
+        drawCentered("(\(elective))", in: CGRect(x: content.minX, y: titleY - 34, width: content.width, height: 24),
+                     ctx, font: font(sansBold, 20))
+        ruleY -= 30
+    }
+    line(ctx, CGPoint(x: content.minX, y: ruleY), CGPoint(x: content.maxX, y: ruleY), width: 2)
     // 아래쪽: 쪽 번호 상자와 안내 문구
     let pageBox = CGRect(x: pageSize.width / 2 - 30, y: content.minY + 4, width: 60, height: 26)
     ctx.setLineWidth(1); ctx.stroke(pageBox)
@@ -100,13 +110,23 @@ func header(_ ctx: CGContext, subject: String, variant: String, page: Int, total
     draw("설명용 예시 문제지 · 실제 시험과 관계없음",
          in: CGRect(x: content.maxX - 220, y: content.minY, width: 220, height: 16), ctx,
          font: font(sans, 10), lineSpacing: 0, align: .right)
+    return ruleY - 12
+}
+
+/// 공통 과목 마지막 쪽 등에 들어가는 확인 사항 상자. 다음 선택과목을 안내한다.
+func notice(_ ctx: CGContext, next: String, column x: CGFloat, width: CGFloat) {
+    let text = "※ 확인 사항\n◦ 답안지의 해당란에 필요한 내용을 정확히 기입(표기)했는지 확인하시오.\n◦ 이어서, 「선택과목(\(next))」 문제가 제시되오니, 자신이 선택한 과목인지 확인하시오."
+    let rect = CGRect(x: x, y: content.minY + 48, width: width, height: 116)
+    ctx.setLineWidth(1); ctx.stroke(rect)
+    draw(text, in: rect.insetBy(dx: 10, dy: 8), ctx, font: font(serif, 12), lineSpacing: 4, align: .left)
 }
 
 /// 국어형 쪽: 두 단, 지문 상자 + 문항.
-func koreanPage(_ ctx: CGContext, page: Int, variant: String, total: Int, seed: Int) {
-    // 문항 번호는 쪽마다 1번부터 이어진다(1쪽: 1~4번, 2쪽: 5~8번).
-    header(ctx, subject: "국어 영역", variant: variant, page: page, total: total, first: page == 1 || page == 3)
-    let top = content.maxY - (page == 1 || page == 3 ? 112 : 92)
+func koreanPage(_ ctx: CGContext, page: Int, variant: String, total: Int, seed: Int,
+                elective: String? = nil, next: String? = nil) {
+    // 문항 번호는 쪽마다 이어진다(1쪽: 1~4번, 2쪽: 5~8번 …).
+    let top = header(ctx, subject: "국어 영역", variant: variant, page: page, total: total,
+                     first: page == 1 || elective != nil, elective: elective) + 6
     let gap: CGFloat = 26
     let colW = (content.width - gap) / 2
     line(ctx, CGPoint(x: content.midX, y: top), CGPoint(x: content.midX, y: content.minY + 40), width: 1)
@@ -118,11 +138,12 @@ func koreanPage(_ ctx: CGContext, page: Int, variant: String, total: Int, seed: 
         y -= draw("[\(first)～\(first + 1)] 다음 글을 읽고 물음에 답하시오.", in: CGRect(x: x, y: y - 40, width: colW, height: 40),
                   ctx, font: font(serif, 13), lineSpacing: 2, align: .left) + 8
         let text = (0..<2).map { passages[(seed + col + $0) % passages.count] }.joined(separator: "\n　")
-        let passageRect = CGRect(x: x + 10, y: content.minY + 400, width: colW - 20, height: y - 12 - (content.minY + 400))
+        let passageRect = CGRect(x: x + 10, y: content.minY + 430, width: colW - 20, height: y - 12 - (content.minY + 430))
         let used = draw("　" + text, in: passageRect, ctx, font: font(serif, 13), lineSpacing: 6)
         ctx.setLineWidth(1); ctx.stroke(CGRect(x: x, y: y - used - 18, width: colW, height: used + 12))
         y -= used + 34
-        for k in 0..<2 {
+        // 안내 상자가 들어가는 오른쪽 단은 문항을 하나만 둔다.
+        for k in 0..<(next != nil && col == 1 ? 1 : 2) {
             let (stem, choices) = questions[(q + k) % questions.count]
             y -= draw("\(first + k). \(stem)", in: CGRect(x: x, y: y - 40, width: colW, height: 40), ctx,
                       font: font(serif, 13.5), lineSpacing: 2, align: .left) + 8
@@ -133,12 +154,13 @@ func koreanPage(_ ctx: CGContext, page: Int, variant: String, total: Int, seed: 
             y -= 24
         }
     }
+    if let next { notice(ctx, next: next, column: content.minX + colW + gap, width: colW) }
 }
 
 /// 수학형 쪽: 두 단, 문항 사이를 넓게 비운다.
-func mathPage(_ ctx: CGContext, page: Int, total: Int) {
-    header(ctx, subject: "수학 영역", variant: "홀수형", page: page, total: total, first: page == 1)
-    let top = content.maxY - (page == 1 ? 112 : 92)
+func mathPage(_ ctx: CGContext, page: Int, total: Int, elective: String? = nil, next: String? = nil) {
+    let top = header(ctx, subject: "수학 영역", variant: "홀수형", page: page, total: total,
+                     first: page == 1 || elective != nil, elective: elective) + 4
     let gap: CGFloat = 26
     let colW = (content.width - gap) / 2
     line(ctx, CGPoint(x: content.midX, y: top), CGPoint(x: content.midX, y: content.minY + 40), width: 1)
@@ -161,6 +183,7 @@ func mathPage(_ ctx: CGContext, page: Int, total: Int) {
                  font: font(serif, 14), lineSpacing: 0, align: .left)
         }
     }
+    if let next { notice(ctx, next: next, column: content.minX + colW + gap, width: colW) }
 }
 
 func makePDF(_ name: String, pages: Int, _ body: (CGContext, Int) -> Void) {
@@ -177,9 +200,23 @@ func makePDF(_ name: String, pages: Int, _ body: (CGContext, Int) -> Void) {
     print(url.path)
 }
 
-// 국어: 홀수형 2쪽 + 짝수형 2쪽이 한 파일에 든 합본
-makePDF("예시_국어_문제지.pdf", pages: 4) { ctx, p in
-    koreanPage(ctx, page: p <= 2 ? p : p - 2, variant: p <= 2 ? "홀수형" : "짝수형", total: 2, seed: p)
+// 국어: 홀수형 4쪽 + 짝수형 4쪽이 한 파일에 든 합본. 형마다 공통 2쪽, 화법과 작문 1쪽, 언어와 매체 1쪽.
+makePDF("예시_국어_문제지.pdf", pages: 8) { ctx, p in
+    let k = (p - 1) % 4 + 1
+    let variant = p <= 4 ? "홀수형" : "짝수형"
+    switch k {
+    case 1: koreanPage(ctx, page: 1, variant: variant, total: 4, seed: p)
+    case 2: koreanPage(ctx, page: 2, variant: variant, total: 4, seed: p, next: "화법과 작문")
+    case 3: koreanPage(ctx, page: 3, variant: variant, total: 4, seed: p, elective: "화법과 작문", next: "언어와 매체")
+    default: koreanPage(ctx, page: 4, variant: variant, total: 4, seed: p, elective: "언어와 매체")
+    }
 }
-// 수학: 3쪽(홀수 쪽수라 양면 인쇄 때 뒤에 빈 쪽이 들어간다)
-makePDF("예시_수학_문제지.pdf", pages: 3) { ctx, p in mathPage(ctx, page: p, total: 3) }
+// 수학: 공통 2쪽, 확률과 통계·미적분·기하 1쪽씩(5쪽). 선택과목 하나만 고르면 3쪽이라 양면 인쇄 때 빈 쪽이 들어간다.
+makePDF("예시_수학_문제지.pdf", pages: 5) { ctx, p in
+    let electives = ["확률과 통계", "미적분", "기하"]
+    switch p {
+    case 1: mathPage(ctx, page: 1, total: 5)
+    case 2: mathPage(ctx, page: 2, total: 5, next: electives[0])
+    default: mathPage(ctx, page: p, total: 5, elective: electives[p - 3], next: p < 5 ? electives[p - 2] : nil)
+    }
+}

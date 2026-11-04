@@ -19,6 +19,7 @@ let usage = """
 
 배치:
       --variant odd|even|all  홀·짝 합본 파일에서 고를 형 (기본 odd)
+      --elective <과목>       고를 선택과목: 화작, 언매, 확통, 미적, 기하 (국어·수학 하나씩, 여러 번 사용)
       --margin <mm>           종이 여백 (기본 5)
       --trim <위,아래,왼쪽,오른쪽>  모든 파일의 자를 범위를 mm 단위로 손봄 (+는 더 자르고 -는 넓힘)
       --whole-page            자동 자르기를 끄고 페이지 전체를 씀
@@ -36,6 +37,7 @@ let usage = """
 예:
   mogo-cli ~/Downloads/2026수능_국어_문제지.pdf
   mogo-cli --variant even -o 국어_짝수형_A4.pdf ~/Downloads/2026수능_국어_문제지.pdf
+  mogo-cli --elective 언매 --elective 미적 -p ~/Downloads/2026수능/
   mogo-cli -p --copies 2 ~/Downloads/모의고사/
 """
 
@@ -77,6 +79,10 @@ while !args.isEmpty {
             fail("--variant는 odd, even, all 중 하나예요 (받은 값: \(v))")
         }
         options.variant = variant
+    case "--elective":
+        let v = value(after: a)
+        guard let e = Elective(name: v) else { fail("--elective는 화작, 언매, 확통, 미적, 기하 중 하나예요 (받은 값: \(v))") }
+        options.electives[e.subject] = e
     case "--margin":
         let v = value(after: a)
         guard let m = Double(v), m >= 0, m < 50 else { fail("--margin은 mm 숫자예요 (받은 값: \(v))") }
@@ -147,6 +153,8 @@ if json {
                 "pages": s.file.pageCount,
                 "used_pages": s.pageIndices.map { $0 + 1 },
                 "both_variants": s.file.hasBothVariants,
+                "electives_in_file": s.file.electives.map(\.rawValue),
+                "elective": s.file.electiveSubject.flatMap { options.electives[$0]?.rawValue } ?? NSNull(),
                 "page_size_mm": [dec(mm(size.width)), dec(mm(size.height))],
                 "crop_margin_mm": ["left": dec(mm(crop.minX)), "top": dec(mm(size.height - crop.maxY)),
                                    "right": dec(mm(size.width - crop.maxX)), "bottom": dec(mm(crop.minY))],
@@ -162,6 +170,9 @@ if json {
         let size = s.pageSize, crop = s.crop
         var tags: [String] = []
         if s.file.hasBothVariants { tags.append("홀·짝 합본→\(options.variant.rawValue)") }
+        if let subject = s.file.electiveSubject {
+            tags.append("선택과목→" + (options.electives[subject]?.shortName ?? "전체(\(s.file.electives.map(\.shortName).joined(separator: "·")))"))
+        }
         if s.padsBlankPage { tags.append("+빈 쪽") }
         print("\(s.file.name): \(s.file.pageCount)쪽 → \(s.pageIndices.count)쪽, \(Int((s.scale * 100).rounded()))%"
               + "  (자른 여백 왼\(Int(mm(crop.minX))) 위\(Int(mm(size.height - crop.maxY)))"

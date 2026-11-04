@@ -23,6 +23,8 @@ final class GoldenTests: XCTestCase {
             "path": Self.key(url, relativeTo: dir),
             "pages": file.pageCount,
             "labels": labels,
+            // 쪽별 선택과목(규칙 3-1): S 화법과 작문, L 언어와 매체, P 확률과 통계, C 미적분, G 기하, - 공통
+            "elective_labels": String(file.pageElectives.map { $0?.code ?? "-" }),
             "both_variants": file.hasBothVariants,
             "odd_page_count": file.pageIndices(for: .odd).count,
             "even_page_count": file.pageIndices(for: .even).count,
@@ -67,7 +69,7 @@ final class GoldenTests: XCTestCase {
         for e in expected {
             let path = e["path"] as! String
             guard let m = byPath[path] else { continue }
-            for k in ["pages", "labels", "both_variants", "odd_page_count", "even_page_count"] {
+            for k in ["pages", "labels", "elective_labels", "both_variants", "odd_page_count", "even_page_count"] {
                 // JSON에서 읽은 값은 NSNumber라서 객체 비교로 본다(true와 1을 같게).
                 XCTAssertTrue((m[k]! as AnyObject).isEqual(e[k]!), "\(path) \(k): \(m[k]!) ≠ \(e[k]!)")
             }

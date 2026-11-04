@@ -11,7 +11,10 @@ final class AppModel: ObservableObject {
 
     @Published private(set) var files: [SourceFile] = []
     @Published var options = ImpositionOptions() {
-        didSet { if oldValue != options { rebuild() } }
+        didSet {
+            if oldValue.electives != options.electives { saveElectives() }
+            if oldValue != options { rebuild() }
+        }
     }
     @Published var printSettings = PrintSettings(printer: "") {
         didSet {
@@ -51,6 +54,36 @@ final class AppModel: ObservableObject {
         printers = found.names
         printSettings = PrintSettings(printer: found.defaultName ?? "")
         refreshHardwareMargin()
+        // 자동 점검(--snapshot-dir)은 사용자가 저장해 둔 선택과목에 영향받지 않게 한다.
+        if DebugSnapshot.directory == nil { options.electives = Self.loadElectives() }
+    }
+
+    // MARK: 선택과목 (학생마다 잘 안 바뀌어서 다음 실행 때도 기억한다)
+
+    private static let electivesKey = "electives"
+
+    private static func loadElectives() -> [ElectiveSubject: Elective] {
+        let saved = UserDefaults.standard.dictionary(forKey: electivesKey) as? [String: String] ?? [:]
+        var out: [ElectiveSubject: Elective] = [:]
+        for (k, v) in saved {
+            if let subject = ElectiveSubject(rawValue: k), let e = Elective(rawValue: v), e.subject == subject { out[subject] = e }
+        }
+        return out
+    }
+
+    private func saveElectives() {
+        guard DebugSnapshot.directory == nil else { return }
+        let dict = Dictionary(uniqueKeysWithValues: options.electives.map { ($0.key.rawValue, $0.value.rawValue) })
+        UserDefaults.standard.set(dict, forKey: Self.electivesKey)
+    }
+
+    /// 지금 목록에 선택과목이 있는 과목(국어, 수학 순).
+    var electiveSubjects: [ElectiveSubject] {
+        ElectiveSubject.allCases.filter { subject in files.contains { $0.electiveSubject == subject } }
+    }
+
+    func electiveBinding(_ subject: ElectiveSubject) -> Binding<Elective?> {
+        Binding(get: { self.options.electives[subject] }, set: { self.options.electives[subject] = $0 })
     }
 
     // MARK: 파일

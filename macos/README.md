@@ -17,7 +17,7 @@ Xcode에서 작업하려면 `Package.swift`를 엽니다. 다만 Dock 아이콘�
 
 ```
 Sources/MogoCore/        자르기·배치·인쇄 로직 (UI 없음)
-  ExamDocument.swift     PDF 불러오기, 홀·짝 형 감지, 쪽별 내용 영역 감지(50dpi 렌더링, 멀티스레드)
+  ExamDocument.swift     PDF 불러오기, 홀·짝 형·선택과목 감지, 쪽별 내용 영역 감지(50dpi 렌더링, 멀티스레드)
   Imposer.swift          자를 범위와 배율 계산, 수동 조정, 빈 쪽, A4에 벡터로 그리기, 폴더 펼치기
   CropGuides.swift       여백 수동 조정 화면의 네 변 점선 계산(끌기 제한, 점선 위치 ↔ 조정값)
   Printing.swift         lp(CUPS) 인쇄, 드라이버 옵션 자동 추가, PPD에서 인쇄 불가 여백 읽기
@@ -55,7 +55,8 @@ build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/snap \
 - `--snapshot-drop-more`: 미리보기 위에 파일을 하나 더 놓습니다. PDF 뷰가 드롭을 가로채지 않는지 확인하는 용도입니다.
 - 저장 파일: `empty.png`, `main.png`, `preview.pdf`(미리보기 내용), `manual.png`(여백 수동 조정 화면), `confirm.png`(인쇄 확인 창),
   `report.json`(쪽수, 배율, 드롭 결과 등).
-- 캡처 옵션: `--snapshot-appearance light|dark`, `--snapshot-size 1180x780`(창 내용 크기), `--snapshot-copies 2`.
+- 캡처 옵션: `--snapshot-appearance light|dark`, `--snapshot-size 1180x780`(창 내용 크기), `--snapshot-copies 2`,
+  `--snapshot-elective 언매`(여러 번). 자동 점검 중에는 사용자가 저장해 둔 선택과목을 읽거나 쓰지 않습니다.
   PNG는 2배 해상도이며, 앱이 비활성 상태여도 활성 창 모양으로 그립니다.
 - **값이 없는 옵션(`--snapshot-quit`)은 반드시 맨 뒤에 둡니다.** macOS는 `-이름 값`을 한 쌍으로 읽기 때문에, 값이 없는 옵션이 중간에 있으면
   뒤의 PDF 경로가 '실행 시 열 파일'로 처리되고 SwiftUI가 창을 만들지 않습니다.

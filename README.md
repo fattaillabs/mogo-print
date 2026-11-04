@@ -26,6 +26,7 @@ PDF를 창에 끌어다 놓으면 바깥 여백을 자동으로 잘라 A4에 맞
 
 - **여백 자동 자르기.** 쪽마다 내용이 있는 영역을 찾아 자릅니다. 한 파일 안의 쪽은 모두 같은 범위로 잘라서 쪽마다 글자 크기가 달라지지 않습니다.
 - **홀수형·짝수형 선택.** 2026학년도 수능 국어·수학·영어처럼 두 형이 한 파일에 들어 있으면 원하는 형만 골라 인쇄합니다. 정답표도 형별로 나뉩니다.
+- **선택과목만 인쇄.** 2022~2027학년도 국어(화법과 작문·언어와 매체)와 수학(확률과 통계·미적분·기하) 시험지에서 자신이 고른 선택과목과 공통 과목 쪽만 인쇄합니다. 2026학년도 수능 기준으로 국어는 20쪽에서 16쪽, 수학은 20쪽에서 12쪽으로 줄어듭니다.
 - **양면 인쇄 대비.** 쪽수가 홀수인 과목 뒤에 빈 쪽을 넣어 다음 과목이 새 종이에서 시작합니다.
 - **인쇄 전 확인.** 실제로 인쇄될 A4를 그대로 미리 보고, 프린터와 분량, 설정을 확인한 뒤 인쇄합니다. 기본 설정은 A4, 양면(긴 쪽 넘김), 흑백입니다.
 - **여백 수동 조정.** 자동으로 잘린 범위가 맞지 않으면 원본 쪽 위에 표시되는 네 변의 점선을 마우스로 끌어 자를 위치를 바꿀 수 있습니다.
@@ -57,6 +58,7 @@ open build/MogoPrint.app
 ### 2. 순서와 설정 확인
 
 왼쪽 목록에서 과목을 끌어 순서를 바꾸고, 홀·짝 합본 파일이 있으면 시험지 형을 고릅니다.
+국어·수학 시험지가 있으면 "국어 선택과목", "수학 선택과목" 설정이 나타나며, 고른 과목은 다음 실행 때도 유지됩니다.
 목록에는 파일마다 쪽수와 배율이 나오고, 합본 파일에는 `홀·짝 합본`, 뒤에 빈 쪽이 들어가는 파일에는 `+빈 쪽` 표시가 붙습니다.
 오른쪽 미리보기는 실제로 인쇄될 A4와 같습니다.
 
@@ -78,7 +80,8 @@ A4 가장자리에 남길 흰 여백은 왼쪽 아래 설정의 "종이 여백"�
 
 ### 예시 문제지
 
-[`docs/demo`](docs/demo) 폴더에는 수능 문제지 판형을 본떠 만든 예시 PDF 두 개(국어 홀·짝 합본 4쪽, 수학 3쪽)가 있습니다.
+[`docs/demo`](docs/demo) 폴더에는 수능 문제지 판형을 본떠 만든 예시 PDF 두 개가 있습니다.
+국어는 홀·짝 합본 8쪽(형마다 공통 2쪽, 화법과 작문·언어와 매체 1쪽씩), 수학은 5쪽(공통 2쪽, 확률과 통계·미적분·기하 1쪽씩)입니다.
 실제 시험지를 내려받기 전에 이 폴더를 앱에 넣어 동작을 확인할 수 있습니다.
 
 ## 명령줄 도구
@@ -94,22 +97,27 @@ sudo ln -s /Applications/MogoPrint.app/Contents/MacOS/mogo-cli /usr/local/bin/mo
 
 ```console
 $ mogo-cli docs/demo
-예시_국어_문제지: 4쪽 → 2쪽, 80%  (자른 여백 왼26 위36 오23 아래24mm)  홀·짝 합본→홀수형
-예시_수학_문제지: 3쪽 → 3쪽, 80%  (자른 여백 왼26 위36 오23 아래24mm)
-합계: A4 5쪽, 종이 3장 (양면)
+예시_국어_문제지: 8쪽 → 4쪽, 80%  (자른 여백 왼26 위36 오23 아래24mm)  홀·짝 합본→홀수형, 선택과목→전체(화작·언매)
+예시_수학_문제지: 5쪽 → 5쪽, 80%  (자른 여백 왼26 위36 오23 아래24mm)  선택과목→전체(확통·미적·기하)
+합계: A4 9쪽, 종이 5장 (양면)
 ```
 
-`-o`로 A4 PDF를 저장하고, `-p`로 바로 인쇄합니다.
+`--elective`로 선택과목을 고르고, `-o`로 A4 PDF를 저장하고, `-p`로 바로 인쇄합니다.
 
 ```console
+$ mogo-cli --elective 언매 --elective 미적 ~/Downloads/2026수능_국어_문제지.pdf ~/Downloads/2026수능_수학_문제지.pdf
+2026수능_국어_문제지: 40쪽 → 16쪽, 80%  (자른 여백 왼29 위37 오24 아래25mm)  홀·짝 합본→홀수형, 선택과목→언매
+2026수능_수학_문제지: 40쪽 → 12쪽, 80%  (자른 여백 왼29 위37 오24 아래25mm)  홀·짝 합본→홀수형, 선택과목→미적
+합계: A4 28쪽, 종이 14장 (양면)
+
 $ mogo-cli --variant even -o 국어_짝수형.pdf ~/Downloads/2026수능_국어_문제지.pdf
-2026수능_국어_문제지: 40쪽 → 20쪽, 80%  (자른 여백 왼29 위37 오24 아래25mm)  홀·짝 합본→짝수형
+2026수능_국어_문제지: 40쪽 → 20쪽, 80%  (자른 여백 왼29 위37 오24 아래25mm)  홀·짝 합본→짝수형, 선택과목→전체(화작·언매)
 합계: A4 20쪽, 종이 10장 (양면)
 저장: 국어_짝수형.pdf
 
 $ mogo-cli -p --copies 2 ~/Downloads/모의고사/       # 폴더 전체를 양면·흑백으로 2부 인쇄
 $ mogo-cli -p --dry-run --copies 2 docs/demo          # 실제로 보내지 않고 lp 명령만 출력
-합계: A4 6쪽, 종이 3장 (양면)
+합계: A4 10쪽, 종이 5장 (양면)
 보낼 명령: lp -d My_Printer -n 2 -t '예시_국어_문제지, 예시_수학_문제지' -o media=A4 -o sides=two-sided-long-edge -o print-color-mode=monochrome -o collate=true ...
 ```
 
@@ -120,6 +128,7 @@ $ mogo-cli -p --dry-run --copies 2 docs/demo          # 실제로 보내지 않�
 | `--dry-run` | `--print`와 함께 쓰면 실제로 보내지 않고 lp 명령만 출력 |
 | `--json` | 요약을 JSON으로 출력 (쪽수, 자른 여백, 배율 등) |
 | `--variant odd\|even\|all` | 홀·짝 합본 파일에서 고를 형 (기본 `odd`) |
+| `--elective 과목` | 고를 선택과목: `화작`, `언매`, `확통`, `미적`, `기하` (국어·수학 하나씩, 여러 번 사용) |
 | `--margin mm` | 종이 여백 (기본 5) |
 | `--trim 위,아래,왼쪽,오른쪽` | 자를 범위를 mm 단위로 조정 (`+`는 더 자르기, `-`는 넓히기) |
 | `--whole-page` | 자동 자르기를 끄고 페이지 전체 사용 |
@@ -159,7 +168,8 @@ macOS 버전과 Windows 버전은 같은 규칙을 따르며, 같은 시험지�
 The official exam PDFs are A3 with wide margins, so printing them on A4 as is shrinks the text to 71%.
 Drop the PDFs onto the app and it trims the empty margins, lays every page out on A4 at about 80% of the original size,
 shows a preview, and prints double-sided in grayscale. It also picks one version out of PDFs that bundle both exam versions
-(홀수형/짝수형) and inserts blank pages so every subject starts on a new sheet. A command line tool, `mogo-cli`,
+(홀수형/짝수형), prints only the elective you take in Korean and math (2022–2027 exams),
+and inserts blank pages so every subject starts on a new sheet. A command line tool, `mogo-cli`,
 does the same from the terminal.
 
 - macOS 14 or later for now. A Windows version is planned.
