@@ -1,0 +1,450 @@
+{
+  "about" : "모고 프린트 샘플 정답값. 맥·윈도우판이 같은 값을 내야 한다. 규칙은 docs/ALGORITHM.md. 허용 오차: 여백 ±1mm, 배율 ±0.01",
+  "files" : [
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 24.5,
+        "left" : 29.5,
+        "right" : 25.8,
+        "top" : 37.1
+      },
+      "even_page_count" : 16,
+      "labels" : "EEEEEEEEEEEEEEEE",
+      "odd_page_count" : 16,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 16,
+      "path" : "2019수능_국어/국어_짝.pdf",
+      "scale" : 0.8003
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 24.5,
+        "left" : 29.5,
+        "right" : 25.8,
+        "top" : 37.1
+      },
+      "even_page_count" : 16,
+      "labels" : "OOOOOOOOOOOOOOOO",
+      "odd_page_count" : 16,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 16,
+      "path" : "2019수능_국어/국어_홀.pdf",
+      "scale" : 0.8003
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 24.5,
+        "left" : 29.5,
+        "right" : 25.8,
+        "top" : 37.1
+      },
+      "even_page_count" : 20,
+      "labels" : "EEEEEEEEEEEEEEEEEEEE",
+      "odd_page_count" : 20,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 20,
+      "path" : "2022수능_국어_문제지/국어영역_짝수형.pdf",
+      "scale" : 0.8003
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 24.5,
+        "left" : 29.5,
+        "right" : 25.8,
+        "top" : 37.1
+      },
+      "even_page_count" : 20,
+      "labels" : "OOOOOOOOOOOOOOOOOOOO",
+      "odd_page_count" : 20,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 20,
+      "path" : "2022수능_국어_문제지/국어영역_홀수형.pdf",
+      "scale" : 0.8003
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 24.5,
+        "left" : 29.5,
+        "right" : 25.8,
+        "top" : 37.1
+      },
+      "even_page_count" : 20,
+      "labels" : "OOOOOOOOOOOOOOOOOOOO",
+      "odd_page_count" : 20,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 20,
+      "path" : "2025수능_국어_문제지_홀수형.pdf",
+      "scale" : 0.8003
+    },
+    {
+      "both_variants" : true,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 24.8,
+        "top" : 37.1
+      },
+      "even_page_count" : 20,
+      "labels" : "OOOOOOOOOOOOOOOOOOOOEEEEEEEEEEEEEEEEEEEE",
+      "odd_page_count" : 20,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 40,
+      "path" : "2026수능_국어_문제지.pdf",
+      "scale" : 0.8015
+    },
+    {
+      "both_variants" : true,
+      "crop_margin_mm" : {
+        "bottom" : 71.5,
+        "left" : 31,
+        "right" : 30.7,
+        "top" : 28.5
+      },
+      "even_page_count" : 1,
+      "labels" : "OE",
+      "odd_page_count" : 1,
+      "page_size_mm" : [
+        210,
+        297
+      ],
+      "pages" : 2,
+      "path" : "2026수능_국어_정답표.pdf",
+      "scale" : 1
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 14.6,
+        "top" : 33.6
+      },
+      "even_page_count" : 4,
+      "labels" : "----",
+      "odd_page_count" : 4,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 4,
+      "path" : "2026수능_사회탐구_문제지/01 생활과 윤리_문제.pdf",
+      "scale" : 0.7907
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 14.6,
+        "top" : 38.6
+      },
+      "even_page_count" : 4,
+      "labels" : "----",
+      "odd_page_count" : 4,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 4,
+      "path" : "2026수능_사회탐구_문제지/02 윤리와 사상_문제.pdf",
+      "scale" : 0.7907
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 14.6,
+        "top" : 38.6
+      },
+      "even_page_count" : 4,
+      "labels" : "----",
+      "odd_page_count" : 4,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 4,
+      "path" : "2026수능_사회탐구_문제지/03 한국지리_문제.pdf",
+      "scale" : 0.7907
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 14.6,
+        "top" : 38.6
+      },
+      "even_page_count" : 4,
+      "labels" : "----",
+      "odd_page_count" : 4,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 4,
+      "path" : "2026수능_사회탐구_문제지/04 세계지리_문제.pdf",
+      "scale" : 0.7907
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 14.6,
+        "top" : 38.6
+      },
+      "even_page_count" : 4,
+      "labels" : "----",
+      "odd_page_count" : 4,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 4,
+      "path" : "2026수능_사회탐구_문제지/05 동아시아사_문제.pdf",
+      "scale" : 0.7907
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 14.6,
+        "top" : 38.6
+      },
+      "even_page_count" : 4,
+      "labels" : "----",
+      "odd_page_count" : 4,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 4,
+      "path" : "2026수능_사회탐구_문제지/06 세계사_문제.pdf",
+      "scale" : 0.7907
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 14.6,
+        "top" : 38.6
+      },
+      "even_page_count" : 4,
+      "labels" : "----",
+      "odd_page_count" : 4,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 4,
+      "path" : "2026수능_사회탐구_문제지/07 경제_문제.pdf",
+      "scale" : 0.7907
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 14.6,
+        "top" : 38.6
+      },
+      "even_page_count" : 4,
+      "labels" : "----",
+      "odd_page_count" : 4,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 4,
+      "path" : "2026수능_사회탐구_문제지/08 정치와 법_문제.pdf",
+      "scale" : 0.7907
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 14.6,
+        "top" : 38.6
+      },
+      "even_page_count" : 4,
+      "labels" : "----",
+      "odd_page_count" : 4,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 4,
+      "path" : "2026수능_사회탐구_문제지/09 사회·문화_문제.pdf",
+      "scale" : 0.7907
+    },
+    {
+      "both_variants" : true,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 24.8,
+        "top" : 37.1
+      },
+      "even_page_count" : 20,
+      "labels" : "OOOOOOOOOOOOOOOOOOOOEEEEEEEEEEEEEEEEEEEE",
+      "odd_page_count" : 20,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 40,
+      "path" : "2026수능_수학_문제지.pdf",
+      "scale" : 0.8015
+    },
+    {
+      "both_variants" : true,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 24.8,
+        "top" : 37.1
+      },
+      "even_page_count" : 8,
+      "labels" : "OOOOOOOOEEEEEEEE",
+      "odd_page_count" : 8,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 16,
+      "path" : "2026수능_영어_문제지.pdf",
+      "scale" : 0.8015
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 24.8,
+        "top" : 37.6
+      },
+      "even_page_count" : 20,
+      "labels" : "--------------------",
+      "odd_page_count" : 20,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 20,
+      "path" : "2027_6월모평_국어_문제지.pdf",
+      "scale" : 0.8026
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 24.8,
+        "top" : 37.6
+      },
+      "even_page_count" : 20,
+      "labels" : "--------------------",
+      "odd_page_count" : 20,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 20,
+      "path" : "2027_6월모평_수학_문제지.pdf",
+      "scale" : 0.8026
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 24.8,
+        "top" : 37.6
+      },
+      "even_page_count" : 20,
+      "labels" : "--------------------",
+      "odd_page_count" : 20,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 20,
+      "path" : "2027_9월모평_국어_문제지.pdf",
+      "scale" : 0.8026
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 25,
+        "left" : 29.5,
+        "right" : 24.8,
+        "top" : 37.6
+      },
+      "even_page_count" : 20,
+      "labels" : "--------------------",
+      "odd_page_count" : 20,
+      "page_size_mm" : [
+        297,
+        420.2
+      ],
+      "pages" : 20,
+      "path" : "2027_9월모평_수학_문제지.pdf",
+      "scale" : 0.8026
+    },
+    {
+      "both_variants" : false,
+      "crop_margin_mm" : {
+        "bottom" : 28.7,
+        "left" : 29.5,
+        "right" : 28.5,
+        "top" : 38.6
+      },
+      "even_page_count" : 20,
+      "labels" : "--------------------",
+      "odd_page_count" : 20,
+      "page_size_mm" : [
+        296.7,
+        419.8
+      ],
+      "pages" : 20,
+      "path" : "참고_2026_7월학평(교육청)_국어_문제지.pdf",
+      "scale" : 0.8142
+    }
+  ],
+  "settings" : {
+    "ink_dpi" : 50,
+    "ink_threshold" : 200,
+    "padding_mm" : 1.5,
+    "paper" : "A4",
+    "paper_margin_mm" : 5,
+    "variant" : "odd"
+  }
+}

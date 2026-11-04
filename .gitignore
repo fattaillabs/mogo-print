@@ -1,0 +1,10 @@
+.DS_Store
+
+# 평가원·교육청 기출 PDF (저작권: 평가원, 재배포 금지) - 테스트용으로 로컬에만 둔다
+Samples/
+
+# 빌드 산출물
+macos/build/
+macos/.build/
+.swiftpm/
+macos/.swiftpm/
