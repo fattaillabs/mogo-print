@@ -62,7 +62,7 @@ func framed(_ name: String, as outName: String, radius: CGFloat = 22, maxWidth: 
 framed("main.png", as: "screenshot-main.png", maxWidth: 1800)
 framed("empty.png", as: "screenshot-drop.png", maxWidth: 1400)
 framed("confirm.png", as: "screenshot-confirm.png", radius: 18)
-framed("adjust.png", as: "screenshot-adjust.png", radius: 18)
+framed("manual.png", as: "screenshot-manual.png", maxWidth: 1800)
 
 // MARK: 원본(그냥 A4에 맞춤) vs 모고 프린트 비교
 

@@ -19,10 +19,11 @@ Xcode에서 작업하려면 `Package.swift`를 엽니다. 다만 Dock 아이콘�
 Sources/MogoCore/        자르기·배치·인쇄 로직 (UI 없음)
   ExamDocument.swift     PDF 불러오기, 홀·짝 형 감지, 쪽별 내용 영역 감지(50dpi 렌더링, 멀티스레드)
   Imposer.swift          자를 범위와 배율 계산, 수동 조정, 빈 쪽, A4에 벡터로 그리기, 폴더 펼치기
+  CropGuides.swift       여백 수동 조정 화면의 위·아래 점선 계산(끌기 제한, 점선 위치 ↔ 조정값)
   Printing.swift         lp(CUPS) 인쇄, 드라이버 옵션 자동 추가, PPD에서 인쇄 불가 여백 읽기
 Sources/MogoPrint/       SwiftUI 앱 (DebugSnapshot.swift는 개발용 자동 UI 점검)
 Sources/mogo-cli/        명령줄 도구
-Tests/MogoCoreTests/     합성 PDF 테스트, 실제 시험지 테스트, 기준값 비교, mogo-cli 실행 테스트
+Tests/MogoCoreTests/     합성 PDF 테스트, 실제 시험지 테스트, 기준값 비교, 여백 조정 점선 계산, mogo-cli 실행 테스트
 Tools/make-demo.swift    docs/demo 예시 문제지 생성 (swift Tools/make-demo.swift ../docs/demo)
 Tools/readme-images/     README 이미지 생성 (사용법은 파일 첫머리 주석 참고)
 Resources/               Info.plist, AppIcon.icns, IconSource/(아이콘 원본과 후보)
@@ -52,14 +53,16 @@ build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/snap \
 - `--snapshot-drop`: 빈 창에 파일을 끌어다 놓는 동작을 재현합니다. AppKit이 드롭할 때 호출하는 `draggingEntered` → `performDragOperation`을
   SwiftUI의 숨은 드롭 뷰에 그대로 호출합니다.
 - `--snapshot-drop-more`: 미리보기 위에 파일을 하나 더 놓습니다. PDF 뷰가 드롭을 가로채지 않는지 확인하는 용도입니다.
-- 저장 파일: `empty.png`, `main.png`, `preview.pdf`(미리보기 내용), `adjust.png`(자르기 손보기 창), `confirm.png`(인쇄 확인 창),
+- 저장 파일: `empty.png`, `main.png`, `preview.pdf`(미리보기 내용), `manual.png`(여백 수동 조정 화면), `confirm.png`(인쇄 확인 창),
   `report.json`(쪽수, 배율, 드롭 결과 등).
 - 캡처 옵션: `--snapshot-appearance light|dark`, `--snapshot-size 1180x780`(창 내용 크기), `--snapshot-copies 2`.
   PNG는 2배 해상도이며, 앱이 비활성 상태여도 활성 창 모양으로 그립니다.
 - **값이 없는 옵션(`--snapshot-quit`)은 반드시 맨 뒤에 둡니다.** macOS는 `-이름 값`을 한 쌍으로 읽기 때문에, 값이 없는 옵션이 중간에 있으면
   뒤의 PDF 경로가 '실행 시 열 파일'로 처리되고 SwiftUI가 창을 만들지 않습니다.
 - Dock이나 Finder로 여는 경로는 `open -n -g -a "$PWD/build/MogoPrint.app" 파일.pdf --args --snapshot-dir … --snapshot-quit`로 확인합니다.
-- 백그라운드로 실행한 앱은 스스로 활성화되지 않아 팝오버가 열리지 않습니다. 그래서 자르기 손보기 창은 화면 밖 창에 그려서 확인합니다.
+- 백그라운드로 실행한 앱은 스스로 활성화되지 않습니다. 이 상태에서는 앱 안에서 만든 마우스 이벤트가 '창을 앞으로 가져오는 첫 클릭'으로
+  처리되어 버려지므로, 여백 조정 점선 끌기는 자동 점검으로 확인할 수 없습니다(`report.json`의 `manual_drag_*`).
+  점선 위치 계산은 `CropGuidesTests`로 검증하고, 실제 끌기는 앱을 띄워 손으로 확인합니다.
 
 ## 명령줄 도구
 

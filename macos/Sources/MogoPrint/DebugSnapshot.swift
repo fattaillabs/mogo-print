@@ -11,7 +11,7 @@ import UniformTypeIdentifiers
 /// - `--snapshot-drop`: 빈 창에 끌어다 놓기를 흉내 낸다. AppKit이 실제 드롭 때 부르는
 ///   draggingEntered → performDragOperation 경로를 가짜 드래그 정보로 호출한다.
 /// - `--snapshot-drop-more`: 미리보기 위에 하나 더 놓는다(PDF 뷰가 드롭을 가로채지 않는지).
-/// - 저장: empty.png, main.png/pdf, adjust.png, adjusted.pdf, confirm.png, report.json (PNG는 2배 해상도)
+/// - 저장: empty.png, main.png/pdf, manual.png, manual-dragged.png, adjusted.pdf, confirm.png, report.json (PNG는 2배 해상도)
 /// - 캡처용: `--snapshot-appearance light`, `--snapshot-size 1180x800`(창 내용 크기), `--snapshot-copies 2`(부수)
 /// - `--snapshot-quit`처럼 값 없는 옵션은 반드시 맨 뒤에 둔다(아래 forcedColorScheme 설명).
 @MainActor
@@ -115,24 +115,52 @@ enum DebugSnapshot {
         }
 
         if let first = model.files.first {
-            let light = forcedColorScheme == .light
-            // 자르기 손보기 창을 화면 밖 창에 그려 레이아웃을 확인한다.
-            // (팝오버는 앱이 활성 상태일 때만 유지되는데, 자동 점검은 다른 앱 포커스를 뺏지 않으려 비활성으로 돈다.)
-            let host = NSHostingView(rootView: CropAdjustView(file: first).environmentObject(model)
-                .modifier(ActiveLook())
-                .background(Color(nsColor: .windowBackgroundColor))
-                .preferredColorScheme(forcedColorScheme))
-            if light { host.appearance = NSAppearance(named: .aqua) }
-            host.frame = CGRect(origin: .zero, size: host.fittingSize)
-            let offscreen = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
-            offscreen.contentView = host
-            host.layoutSubtreeIfNeeded()
-            await pause(0.3)
-            if let rep = bitmap(for: host) {
-                host.cacheDisplay(in: host.bounds, to: rep)
-                try? rep.representation(using: .png, properties: [:])?.write(to: dir.appendingPathComponent("adjust.png"))
-                report["adjust_view_size"] = "\(Int(host.bounds.width))x\(Int(host.bounds.height))"
+            // 여백 수동 조정 화면을 켜고 찍는다.
+            model.startManualCrop(file: first)
+            await pause(1.5)
+            capture(mainWindow, to: dir.appendingPathComponent("manual.png"))
+            report["manual_mode"] = model.manualCropFileID == first.id && guideTopY != nil
+
+            // 위 점선을 마우스로 40pt 아래로 끈다(앱 안에서 마우스 이벤트를 만들어 넣는다).
+            if let window = mainWindow, let content = window.contentView, let y = guideTopY, let x = guideCenterX,
+               let s = guideScale {
+                let start = CGPoint(x: x, y: content.bounds.height - y) // SwiftUI 전역 좌표(위 원점) → 창 좌표(아래 원점)
+                let drag: CGFloat = 40
+                // 1차: 창에 바로 전달. 안 되면 2차: 이벤트 큐에 넣기(비활성 앱은 첫 클릭이 활성화에 쓰일 수 있어 한 번 더 누른다).
+                var method = "none"
+                window.makeKey()
+                report["manual_drag_window_key"] = window.isKeyWindow
+                report["manual_drag_app_active"] = NSApp.isActive
+                // 이벤트가 앱까지 오는지(큐 방식) 따로 센다.
+                var seen = 0
+                let monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { e in
+                    seen += 1; return e
+                }
+                defer { if let monitor { NSEvent.removeMonitor(monitor) } }
+                for (name, viaQueue) in [("sendEvent", false), ("postEvent", true)] {
+                    let events: [(NSEvent.EventType, CGFloat)] = [(.leftMouseDown, 0)]
+                        + (1...8).map { (.leftMouseDragged, drag * CGFloat($0) / 8) } + [(.leftMouseUp, drag)]
+                    if viaQueue { mouse(.leftMouseDown, start, window, queue: true); mouse(.leftMouseUp, start, window, queue: true) }
+                    for (type, dy) in events {
+                        mouse(type, CGPoint(x: start.x, y: start.y - dy), window, queue: viaQueue)
+                        if !viaQueue { await pause(0.03) }
+                    }
+                    if await wait(3, { !model.options.adjustment(for: first.url).isDefault }) { method = name; break }
+                }
+                report["manual_drag_method"] = method
+                report["manual_drag_events_seen_by_app"] = seen
+                _ = await wait(30) { isReady(model) }
+                let top = model.options.adjustment(for: first.url).top
+                report["manual_drag_top_mm"] = Double(top)
+                report["manual_drag_expected_mm"] = Double(drag / s / pointsPerMM)
+                await pause(1)
+                capture(mainWindow, to: dir.appendingPathComponent("manual-dragged.png"))
+                model.options.adjustments[first.url] = nil
+                _ = await wait(30) { isReady(model) }
             }
+            model.manualCropFileID = nil
+            await pause(0.5)
+
             // 위를 10mm 더 자르면 그 파일의 배율이 커져야 한다.
             let scaleBefore = model.sections.first { $0.file.id == first.id }?.scale ?? 0
             model.options.adjustments[first.url] = CropAdjustment(top: 10)
@@ -161,6 +189,29 @@ enum DebugSnapshot {
         }
         log("saved to \(dir.path)")
         if args.contains("--snapshot-quit") { NSApp.terminate(nil) }
+    }
+
+    // MARK: 수동 조정 화면 위치 기록 (마우스 끌기 시험용)
+
+    private static var guideTopY: CGFloat?
+    private static var guideCenterX: CGFloat?
+    private static var guideScale: CGFloat?
+
+    /// 수동 조정 화면이 그릴 때 위 점선의 위치(SwiftUI 전역 좌표)를 남긴다. 점검 중이 아니면 아무것도 안 한다.
+    static func recordGuide(topY: CGFloat, centerX: CGFloat, scale: CGFloat) {
+        guard directory != nil else { return }
+        guideTopY = topY
+        guideCenterX = centerX
+        guideScale = scale
+    }
+
+    private static func mouse(_ type: NSEvent.EventType, _ point: CGPoint, _ window: NSWindow, queue: Bool) {
+        guard let e = NSEvent.mouseEvent(with: type, location: point, modifierFlags: [],
+                                         timestamp: ProcessInfo.processInfo.systemUptime,
+                                         windowNumber: window.windowNumber, context: nil, eventNumber: 0,
+                                         clickCount: 1, pressure: type == .leftMouseUp ? 0 : 1)
+        else { return }
+        if queue { NSApp.postEvent(e, atStart: false) } else { window.sendEvent(e) }
     }
 
     // MARK: 기다리기
@@ -213,7 +264,9 @@ enum DebugSnapshot {
         else { return }
         view.cacheDisplay(in: view.bounds, to: rep)
         // PDFView는 페이지를 비동기 레이어로 그려서 비트맵 캡처에 하얗게 나온다. 벡터로 따로 그려 그 자리에 덮는다.
-        if let pv = findView(PDFView.self, in: window.contentView),
+        // 여백 수동 조정 중에는 PDFView가 투명하게 숨어 있으므로 덮지 않는다.
+        if AppModel.shared.manualCropFile == nil, window.attachedSheet == nil || window.isSheet,
+           let pv = findView(PDFView.self, in: window.contentView),
            let image = NSImage(data: pv.dataWithPDF(inside: pv.bounds)) {
             var rect = pv.convert(pv.bounds, to: view)
             if view.isFlipped { rect.origin.y = view.bounds.height - rect.maxY }

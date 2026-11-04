@@ -32,8 +32,10 @@ final class AppModel: ObservableObject {
     @Published var status: String?
     @Published var errorMessage: String?
     @Published var showPrintConfirm = false
-    /// 자르기 손보기 창이 열린 파일(한 번에 하나).
-    @Published var adjustingFileID: UUID?
+    /// 여백 수동 조정 중인 파일(nil이면 꺼짐). 켜면 미리보기가 원본 쪽과 위·아래 점선으로 바뀐다.
+    @Published var manualCropFileID: UUID?
+    /// 수동 조정을 켤 때 처음 보여 줄 쪽(그 파일의 고른 형 쪽 목록에서 몇 번째).
+    @Published var manualCropStartPosition = 0
 
     private var outputData: Data?
     private var generation = 0
@@ -92,6 +94,7 @@ final class AppModel: ObservableObject {
     }
 
     func remove(_ file: SourceFile) {
+        if manualCropFileID == file.id { manualCropFileID = nil }
         files.removeAll { $0.id == file.id }
         options.adjustments[file.url] = nil
         rebuild()
@@ -103,6 +106,7 @@ final class AppModel: ObservableObject {
     }
 
     func clear() {
+        manualCropFileID = nil
         files = []
         status = nil
         options.adjustments = [:]
@@ -146,6 +150,30 @@ final class AppModel: ObservableObject {
             if index < start { return nil }
         }
         return nil
+    }
+
+    var manualCropFile: SourceFile? { files.first { $0.id == manualCropFileID } }
+
+    /// 결과 쪽 번호(0부터)가 어느 파일의 몇 번째 쪽(고른 형 쪽 목록 기준)인지. 빈 쪽이면 nil.
+    func sourcePosition(forOutputPage index: Int) -> (file: SourceFile, position: Int)? {
+        var start = 0
+        for s in sections {
+            if index < start + s.pages.count { return (s.file, index - start) }
+            start += s.outputPageCount
+            if index < start { return nil }
+        }
+        return nil
+    }
+
+    /// 여백 수동 조정을 켠다. 파일을 안 주면 지금 보던 쪽의 파일로.
+    func startManualCrop(file: SourceFile? = nil, outputPage: Int = 0) {
+        if let file {
+            manualCropStartPosition = 0
+            manualCropFileID = file.id
+        } else if let found = sourcePosition(forOutputPage: outputPage) ?? sections.first.map({ ($0.file, 0) }) {
+            manualCropStartPosition = found.position
+            manualCropFileID = found.file.id
+        }
     }
 
     private func padding(for s: PrintSettings) -> (Bool, Bool) {

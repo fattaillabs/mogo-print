@@ -92,25 +92,11 @@ public enum Imposer {
             let indices = file.pageIndices(for: options.variant)
             let adjust = options.adjustment(for: file.url)
 
-            // 같은 크기 페이지끼리 내용 영역을 합쳐서 같은 영역으로 자른다(글자 크기 일정).
-            var unionBySize: [String: CGRect] = [:]
-            for i in indices {
-                let key = file.geometry[i].sizeKey
-                let pageRect = CGRect(origin: .zero, size: file.geometry[i].size)
-                let found: CGRect? = adjust.wholePage ? pageRect : file.inkBounds[i]
-                guard let r = found else { continue }
-                unionBySize[key] = unionBySize[key].map { $0.union(r) } ?? r
-            }
-
+            let bases = autoCrops(file: file, indices: indices, adjust: adjust, pad: pad)
             let pages = indices.map { i -> PlacedPage in
-                let geo = file.geometry[i]
-                let pageRect = CGRect(origin: .zero, size: geo.size)
-                let found = unionBySize[geo.sizeKey]
-                var crop = found.map { adjust.wholePage ? $0 : $0.insetBy(dx: -pad, dy: -pad) } ?? pageRect
-                crop = cropApplying(adjust, to: crop).intersection(pageRect)
-                if crop.isNull || crop.width < 36 || crop.height < 36 { crop = pageRect }
+                let crop = finalCrop(base: bases[file.geometry[i].sizeKey], page: file.geometry[i], adjust: adjust)
                 let scale = min(usable.width / crop.width, usable.height / crop.height, options.maxScale)
-                return PlacedPage(index: i, crop: crop, scale: scale, geometry: geo)
+                return PlacedPage(index: i, crop: crop, scale: scale, geometry: file.geometry[i])
             }
 
             let isLast = n == nonEmpty.count - 1
@@ -122,6 +108,47 @@ public enum Imposer {
             ))
         }
         return sections
+    }
+
+    /// 같은 크기 페이지끼리 내용 영역을 합쳐 자동 범위를 만든다(글자 크기 일정). 크기 키별 범위, 손 조정 전.
+    static func autoCrops(file: SourceFile, indices: [Int], adjust: CropAdjustment, pad: CGFloat) -> [String: CGRect] {
+        var union: [String: CGRect] = [:]
+        for i in indices {
+            let key = file.geometry[i].sizeKey
+            let pageRect = CGRect(origin: .zero, size: file.geometry[i].size)
+            let found: CGRect? = adjust.wholePage ? pageRect : file.inkBounds[i]
+            guard let r = found else { continue }
+            union[key] = union[key].map { $0.union(r) } ?? r
+        }
+        // 자동 자르기를 끄면 페이지 전체(덧붙임 없음), 아니면 사방으로 덧붙임만큼 넓힌다.
+        return adjust.wholePage ? union : union.mapValues { $0.insetBy(dx: -pad, dy: -pad) }
+    }
+
+    /// 자동 범위에 손 조정을 적용하고 페이지 안으로 맞춘다. 너무 작아지면 페이지 전체.
+    static func finalCrop(base: CGRect?, page geo: PageGeometry, adjust: CropAdjustment) -> CGRect {
+        let pageRect = CGRect(origin: .zero, size: geo.size)
+        let crop = cropApplying(adjust, to: base ?? pageRect).intersection(pageRect)
+        if crop.isNull || crop.width < 36 || crop.height < 36 { return pageRect }
+        return crop
+    }
+
+    /// 손 조정 전 자동 범위(수동 조정 화면의 기준). 그 쪽과 크기가 같은, 고른 형의 쪽들을 합친 범위다.
+    public static func baseCrop(file: SourceFile, pageIndex i: Int, options: ImpositionOptions) -> CGRect {
+        let crops = autoCrops(file: file, indices: file.pageIndices(for: options.variant),
+                              adjust: options.adjustment(for: file.url), pad: options.paddingMM * pointsPerMM)
+        return crops[file.geometry[i].sizeKey] ?? CGRect(origin: .zero, size: file.geometry[i].size)
+    }
+
+    /// 손 조정까지 적용한 최종 범위(실제로 A4에 놓이는 범위).
+    public static func crop(file: SourceFile, pageIndex i: Int, options: ImpositionOptions) -> CGRect {
+        finalCrop(base: baseCrop(file: file, pageIndex: i, options: options), page: file.geometry[i],
+                  adjust: options.adjustment(for: file.url))
+    }
+
+    /// 범위를 A4에 놓을 때의 배율.
+    public static func scale(for crop: CGRect, options: ImpositionOptions) -> CGFloat {
+        let margin = options.paperMarginMM * pointsPerMM
+        return min((a4Size.width - 2 * margin) / crop.width, (a4Size.height - 2 * margin) / crop.height, options.maxScale)
     }
 
     /// 손 조정 값(mm)을 적용한다. +는 안으로 더 자르고 -는 밖으로 넓힌다.
