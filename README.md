@@ -31,6 +31,7 @@ PDF를 창에 끌어다 놓으면 바깥 여백을 자동으로 잘라 A4에 맞
 - **인쇄 전 확인.** 실제로 인쇄될 A4를 그대로 미리 보고, 프린터와 분량, 설정을 확인한 뒤 인쇄합니다. 기본 설정은 A4, 양면(긴 쪽 넘김), 흑백입니다.
 - **여백 수동 조정.** 자동으로 잘린 범위가 맞지 않으면 원본 쪽 위에 표시되는 네 변의 점선을 마우스로 끌어 자를 위치를 바꿀 수 있습니다.
 - **프린터 여백 검사.** 종이 여백이 프린터가 인쇄할 수 있는 범위보다 좁으면 미리 경고합니다.
+- **평가원에서 바로 받기.** 수능, 6월·9월 모의평가 시험지를 학년도와 영역만 골라 평가원 홈페이지에서 받아 목록에 넣습니다. ZIP으로 올라온 탐구·예전 시험지도 풀어서 넣습니다.
 - **명령줄 도구.** 터미널에서 `mogo-cli`로 같은 작업을 할 수 있습니다.
 
 ## 설치
@@ -51,7 +52,7 @@ open build/MogoPrint.app
 ### 1. PDF 넣기
 
 앱 창이나 Dock 아이콘에 시험지 PDF를 끌어다 놓습니다. 여러 파일이나 폴더를 한 번에 넣을 수 있고, 폴더는 하위 폴더까지 읽습니다.
-`⌘O`로 파일을 골라도 됩니다.
+`⌘O`로 파일을 골라도 됩니다. 평가원 시험지는 `평가원에서 받기…`(`⇧⌘O`)로 바로 받을 수도 있습니다(아래 참고).
 
 <p align="center"><img src="docs/images/screenshot-drop.png" width="640" alt="처음 화면"></p>
 
@@ -77,6 +78,14 @@ A4 가장자리에 남길 흰 여백은 왼쪽 아래 설정의 "종이 여백"�
 인쇄하지 않고 `PDF로 저장…`으로 A4 PDF만 저장할 수도 있습니다.
 
 <p align="center"><img src="docs/images/screenshot-confirm.png" width="440" alt="인쇄 확인 창"></p>
+
+### 평가원에서 받기
+
+`평가원에서 받기…` 또는 미리보기 위의 `기출 받기`를 누르면 평가원 수능 홈페이지의 기출문제 목록을 불러옵니다.
+시험(수능, 6월 모평, 9월 모평)과 학년도를 고르고 받을 영역에 체크한 뒤 `받기`를 누르면 다운로드 폴더의 `모고 프린트` 폴더에 저장하고 목록에 넣습니다.
+탐구처럼 과목 여러 개가 한 파일로 올라오는 영역은 받은 뒤 응시할 과목만 고르면 됩니다. `정답표도 받기`를 켜면 정답표도 함께 받습니다.
+
+<p align="center"><img src="docs/images/screenshot-kice.png" width="440" alt="평가원 기출 받기 창"></p>
 
 ### 예시 문제지
 
@@ -121,6 +130,16 @@ $ mogo-cli -p --dry-run --copies 2 docs/demo          # 실제로 보내지 않�
 보낼 명령: lp -d My_Printer -n 2 -t '예시_국어_문제지, 예시_수학_문제지' -o media=A4 -o sides=two-sided-long-edge -o print-color-mode=monochrome -o collate=true ...
 ```
 
+평가원에서 시험지를 받을 수도 있습니다. 받은 파일 경로를 한 줄씩 출력합니다.
+
+```console
+$ mogo-cli --download 수능 2026 --area 국어,수학,사회탐구
+~/Downloads/모고 프린트/2026학년도 대학수학능력시험/2026수능_국어영역_문제지.pdf
+~/Downloads/모고 프린트/2026학년도 대학수학능력시험/2026수능_수학영역_문제지.pdf
+~/Downloads/모고 프린트/2026학년도 대학수학능력시험/2026수능_사회탐구영역_문제지/01 생활과 윤리_문제.pdf
+...
+```
+
 | 옵션 | 설명 |
 |---|---|
 | `-o`, `--output 파일.pdf` | A4로 배치한 PDF 저장 |
@@ -134,11 +153,14 @@ $ mogo-cli -p --dry-run --copies 2 docs/demo          # 실제로 보내지 않�
 | `--whole-page` | 자동 자르기를 끄고 페이지 전체 사용 |
 | `--printer 이름` | 프린터 지정 (목록은 `--list-printers`) |
 | `--copies N`, `--single-sided`, `--color` | 부수, 단면, 컬러 |
+| `--download 시험 학년도` | 평가원에서 시험지 받기 (시험: `수능`, `6월`, `9월`). 학년도를 빼면 고를 수 있는 학년도 출력 |
+| `--area 영역,...`, `--answers`, `--to 폴더` | 받을 영역(기본 전체), 정답표도 받기, 저장 폴더(기본 `~/Downloads/모고 프린트`) |
 | `-h`, `--help` | 도움말 |
 
 ## 시험지 PDF 구하기
 
-이 저장소에는 실제 시험지가 들어 있지 않습니다. 시험지의 저작권은 한국교육과정평가원에 있어 다시 배포할 수 없으므로 아래에서 직접 내려받아 사용하세요.
+이 저장소에는 실제 시험지가 들어 있지 않습니다. 시험지의 저작권은 한국교육과정평가원에 있어 다시 배포할 수 없습니다.
+앱의 `평가원에서 받기`를 쓰거나 아래에서 직접 내려받아 사용하세요.
 
 - 수능·모의평가: [평가원 수능 홈페이지 기출문제](https://www.suneung.re.kr/boardCnts/list.do?boardID=1500234&m=0403&s=suneung)
 - 교육청 학력평가: EBSi 기출문제
@@ -167,7 +189,7 @@ macOS 버전과 Windows 버전은 같은 규칙을 따르며, 같은 시험지�
 
 The official exam PDFs are A3 with wide margins, so printing them on A4 as is shrinks the text to 71%.
 Drop the PDFs onto the app and it trims the empty margins, lays every page out on A4 at about 80% of the original size,
-shows a preview, and prints double-sided in grayscale. It also picks one version out of PDFs that bundle both exam versions
+shows a preview, and prints double-sided in grayscale. It can also download past exams directly from the KICE website. It also picks one version out of PDFs that bundle both exam versions
 (홀수형/짝수형), prints only the elective you take in Korean and math (2022–2027 exams),
 and inserts blank pages so every subject starts on a new sheet. A command line tool, `mogo-cli`,
 does the same from the terminal.

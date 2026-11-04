@@ -35,6 +35,8 @@ final class AppModel: ObservableObject {
     @Published var status: String?
     @Published var errorMessage: String?
     @Published var showPrintConfirm = false
+    /// 평가원 기출 받기 창
+    @Published var showKICE = false
     /// 여백 수동 조정 중인 파일(nil이면 꺼짐). 켜면 미리보기가 원본 쪽과 네 변의 점선으로 바뀐다.
     @Published var manualCropFileID: UUID?
     /// 수동 조정을 켤 때 처음 보여 줄 쪽(그 파일의 고른 형 쪽 목록에서 몇 번째).
@@ -92,11 +94,12 @@ final class AppModel: ObservableObject {
         url.standardizedFileURL.resolvingSymlinksInPath().path
     }
 
-    func add(urls: [URL]) {
+    /// 파일을 목록에 넣는다. keepOrder가 아니면 한 묶음을 이름순으로 맞춘다
+    /// (여러 파일을 한 번에 끌어 놓으면 SwiftUI가 도착 순서를 섞어서 넘길 수 있어서. 실측).
+    /// 평가원에서 받은 파일은 시험 순서(국어, 수학, 영어 …)를 지키려고 keepOrder로 넣는다.
+    func add(urls: [URL], keepOrder: Bool = false) {
         let existing = Set(files.map { Self.key($0.url) }).union(loadingPaths)
-        // 여러 파일을 한 번에 끌어 놓으면 SwiftUI가 도착 순서를 섞어서 넘길 수 있다(실측).
-        // 한 묶음 안에서는 Finder 기본 정렬처럼 이름순으로 맞춘다. 순서는 목록에서 끌어서 바꾸면 된다.
-        let batch = urls.sorted {
+        let batch = keepOrder ? urls : urls.sorted {
             $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending
         }
         let pdfs = URL.expandPDFs(batch).filter { !existing.contains(Self.key($0)) }

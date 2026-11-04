@@ -20,6 +20,8 @@ struct MogoPrintApp: App {
             CommandGroup(replacing: .newItem) {
                 Button("열기…") { model.openPanel() }
                     .keyboardShortcut("o")
+                Button("평가원 기출 받기…") { model.showKICE = true }
+                    .keyboardShortcut("o", modifiers: [.command, .shift])
             }
             CommandGroup(replacing: .printItem) {
                 Button("인쇄…") { model.showPrintConfirm = true }

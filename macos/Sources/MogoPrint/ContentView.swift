@@ -32,6 +32,10 @@ struct ContentView: View {
                     .allowsHitTesting(false)
             }
         }
+        .sheet(isPresented: $model.showKICE) {
+            KICEDownloadView().environmentObject(model)
+                .modifier(DebugSnapshot.ActiveLook())
+        }
         .sheet(isPresented: $model.showPrintConfirm) {
             PrintConfirmView().environmentObject(model)
                 .modifier(DebugSnapshot.ActiveLook())
@@ -62,8 +66,11 @@ struct DropZoneView: View {
                 .font(.title2.weight(.semibold))
             Text("여러 파일이나 폴더도 한 번에 돼요. Dock의 앱 아이콘에 놓아도 열려요.")
                 .foregroundStyle(.secondary)
-            Button("파일 선택…") { model.openPanel() }
-                .controlSize(.large)
+            HStack(spacing: 12) {
+                Button("파일 선택…") { model.openPanel() }
+                Button("평가원에서 받기…") { model.showKICE = true }
+            }
+            .controlSize(.large)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
@@ -263,6 +270,7 @@ struct PreviewPane: View {
                     Label("여백 조정", systemImage: "crop")
                 }
                 .disabled(model.sections.isEmpty)
+                Button { model.showKICE = true } label: { Label("기출 받기", systemImage: "arrow.down.circle") }
                 Button { model.openPanel() } label: { Label("추가", systemImage: "plus") }
                 Button("모두 비우기") { model.clear() }
             }

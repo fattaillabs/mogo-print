@@ -20,8 +20,10 @@ Sources/MogoCore/        자르기·배치·인쇄 로직 (UI 없음)
   ExamDocument.swift     PDF 불러오기, 홀·짝 형·선택과목 감지, 쪽별 내용 영역 감지(50dpi 렌더링, 멀티스레드)
   Imposer.swift          자를 범위와 배율 계산, 수동 조정, 빈 쪽, A4에 벡터로 그리기, 폴더 펼치기
   CropGuides.swift       여백 수동 조정 화면의 네 변 점선 계산(끌기 제한, 점선 위치 ↔ 조정값)
+  KICEArchive.swift      평가원 기출문제 게시판 읽기·받기(학년도, 영역, 첨부 분류, ZIP 풀기)
+  ZipArchive.swift       평가원 ZIP 풀기(저장·deflate, CP949 파일 이름). macOS 기본 unzip은 이름이 깨진다
   Printing.swift         lp(CUPS) 인쇄, 드라이버 옵션 자동 추가, PPD에서 인쇄 불가 여백 읽기
-Sources/MogoPrint/       SwiftUI 앱 (DebugSnapshot.swift는 개발용 자동 UI 점검)
+Sources/MogoPrint/       SwiftUI 앱 (KICEDownloadView.swift는 평가원 받기 창, DebugSnapshot.swift는 개발용 자동 UI 점검)
 Sources/mogo-cli/        명령줄 도구
 Tests/MogoCoreTests/     합성 PDF 테스트, 실제 시험지 테스트, 기준값 비교, 여백 조정 점선 계산, mogo-cli 실행 테스트
 Tools/make-demo.swift    docs/demo 예시 문제지 생성 (swift Tools/make-demo.swift ../docs/demo)
@@ -37,6 +39,8 @@ Resources/               Info.plist, AppIcon.icns, IconSource/(아이콘 원본�
 - `CLITests`는 빌드된 `mogo-cli`를 docs/demo 예시 문제지로 직접 실행해 요약, JSON, 저장, `--dry-run` 인쇄, 잘못된 인자 처리를 확인합니다.
 - 저장소 최상위 `Samples/`에 실제 시험지 PDF가 있으면 실제 시험지 테스트와 기준값 비교(`GoldenTests`)도 실행되고, 없으면 건너뜁니다.
   시험지는 평가원 저작물이라 저장소에 넣지 않습니다. 기준값 파일(`../docs/expected/samples.json`)에 적힌 경로대로 받아 두면 됩니다.
+- 평가원 홈페이지에 실제로 접속하는 테스트는 `MOGO_NETWORK_TESTS=1 swift test --filter testLiveDownload`로만 실행됩니다
+  (학년도 목록, 2026 수능 목록, PDF 받기, 2022 국어 ZIP 풀기, 6월 모평 목록). `Samples/_zips`에 실제 ZIP이 있으면 ZIP 테스트도 그것으로 확인합니다.
 - 규칙을 의도적으로 바꿨다면 기준값을 다시 생성합니다: `MOGO_UPDATE_GOLDEN=1 swift test --filter GoldenTests`.
   Windows 버전도 같은 파일로 검증하므로 바꾼 이유를 커밋 메시지에 남깁니다.
 
@@ -56,7 +60,8 @@ build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/snap \
 - 저장 파일: `empty.png`, `main.png`, `preview.pdf`(미리보기 내용), `manual.png`(여백 수동 조정 화면), `confirm.png`(인쇄 확인 창),
   `report.json`(쪽수, 배율, 드롭 결과 등).
 - 캡처 옵션: `--snapshot-appearance light|dark`, `--snapshot-size 1180x780`(창 내용 크기), `--snapshot-copies 2`,
-  `--snapshot-elective 언매`(여러 번). 자동 점검 중에는 사용자가 저장해 둔 선택과목을 읽거나 쓰지 않습니다.
+  `--snapshot-elective 언매`(여러 번), `--snapshot-kice 1`(평가원 받기 창을 열어 목록만 불러와 `kice.png`로 저장, 받지는 않음).
+  자동 점검 중에는 사용자가 저장해 둔 선택과목을 읽거나 쓰지 않습니다.
   PNG는 2배 해상도이며, 앱이 비활성 상태여도 활성 창 모양으로 그립니다.
 - **값이 없는 옵션(`--snapshot-quit`)은 반드시 맨 뒤에 둡니다.** macOS는 `-이름 값`을 한 쌍으로 읽기 때문에, 값이 없는 옵션이 중간에 있으면
   뒤의 PDF 경로가 '실행 시 열 파일'로 처리되고 SwiftUI가 창을 만들지 않습니다.
@@ -85,6 +90,5 @@ build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/snap \
 ## 할 일
 
 - [ ] 서명·공증한 앱을 GitHub Releases로 배포
-- [ ] 정답표를 맨 뒤로 모으기, 평가원·EBSi에서 바로 내려받기 (평가원 게시판: 수능 1500234, 모의평가 1500236,
-      `boardCnts/fileDown.do?fileSeq=…`, 탐구·예전 시험지는 ZIP이며 파일명이 CP949)
+- [x] 평가원에서 바로 받기 (EBSi 교육청 학력평가는 아직)
 - [ ] Windows 버전 (`../windows/`, 규칙은 `../docs/ALGORITHM.md`)

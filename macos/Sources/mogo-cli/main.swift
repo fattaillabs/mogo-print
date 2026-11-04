@@ -24,6 +24,12 @@ let usage = """
       --trim <위,아래,왼쪽,오른쪽>  모든 파일의 자를 범위를 mm 단위로 손봄 (+는 더 자르고 -는 넓힘)
       --whole-page            자동 자르기를 끄고 페이지 전체를 씀
 
+평가원에서 받기:
+      --download <시험> [학년도]  시험지를 받아 저장(시험: 수능, 6월, 9월). 학년도를 빼면 고를 수 있는 학년도를 보여 줌
+      --area <영역,...>       받을 영역 (예: 국어,수학,사회탐구. 기본: 전체)
+      --answers               정답표도 받기
+      --to <폴더>             저장 폴더 (기본: ~/Downloads/모고 프린트)
+
 인쇄:
       --printer <이름>        프린터 (기본: 시스템 기본 프린터, 목록은 --list-printers)
       --copies <N>            부수
@@ -39,6 +45,8 @@ let usage = """
   mogo-cli --variant even -o 국어_짝수형_A4.pdf ~/Downloads/2026수능_국어_문제지.pdf
   mogo-cli --elective 언매 --elective 미적 -p ~/Downloads/2026수능/
   mogo-cli -p --copies 2 ~/Downloads/모의고사/
+  mogo-cli --download 수능 2026 --area 국어,수학,영어
+  mogo-cli --download 6월 2027 --area 사회탐구 --answers
 """
 
 let version = "0.1.0"
@@ -58,6 +66,9 @@ var doPrint = false, dryRun = false, json = false
 var trim: CropAdjustment?
 var printerName: String?
 var inputs: [String] = []
+var downloadExam: KICEExam?, downloadYear: Int?, downloadAreas: [String] = [], downloadAnswers = false
+var downloadDir = FileManager.default.homeDirectoryForCurrentUser
+    .appendingPathComponent("Downloads/모고 프린트", isDirectory: true)
 
 func value(after flag: String) -> String {
     guard !args.isEmpty else { fail("\(flag) 뒤에 값이 필요해요") }
@@ -95,6 +106,15 @@ while !args.isEmpty {
     case "--whole-page":
         trim = trim ?? CropAdjustment()
         trim?.wholePage = true
+    case "--download":
+        let v = value(after: a)
+        guard let exam = KICEExam(name: v) else { fail("--download 뒤에는 수능, 6월, 9월 중 하나를 써요 (받은 값: \(v))") }
+        downloadExam = exam
+        if let next = args.first, next.count == 4, let y = Int(next) { downloadYear = y; args.removeFirst() }
+    case "--area":
+        downloadAreas += value(after: a).split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+    case "--answers": downloadAnswers = true
+    case "--to": downloadDir = URL(fileURLWithPath: (value(after: a) as NSString).expandingTildeInPath, isDirectory: true)
     case "--printer": printerName = value(after: a)
     case "--copies":
         let v = value(after: a)
@@ -110,6 +130,40 @@ while !args.isEmpty {
     default:
         if a.hasPrefix("-") && a.count > 1 { fail("모르는 옵션이에요: \(a)\n도움말: mogo-cli --help") }
         inputs.append(a)
+    }
+}
+
+if let exam = downloadExam {
+    await download(exam)
+    exit(0)
+}
+
+/// 평가원에서 시험지를 받아 저장한다. 저장한 PDF 경로를 한 줄씩 출력한다.
+@MainActor
+func download(_ exam: KICEExam) async {
+    do {
+        guard let year = downloadYear else {
+            let years = try await KICEArchive.years(exam)
+            print("\(exam.rawValue)에서 고를 수 있는 학년도: " + years.map(String.init).joined(separator: " "))
+            return
+        }
+        let rows = try await KICEArchive.rows(exam, year: year)
+        guard !rows.isEmpty else { fail("\(year)학년도 \(exam.rawValue) 시험지가 아직 올라와 있지 않아요") }
+        let wanted = downloadAreas.isEmpty ? rows : rows.filter { r in
+            downloadAreas.contains { r.area.replacingOccurrences(of: " ", with: "").hasPrefix($0.replacingOccurrences(of: " ", with: "")) }
+        }
+        guard !wanted.isEmpty else {
+            fail("영역을 찾지 못했어요. 이 시험의 영역: " + rows.map(\.area).joined(separator: ", "))
+        }
+        let dir = KICEArchive.folder(exam, year: year, base: downloadDir)
+        for row in wanted {
+            for a in row.papers + (downloadAnswers ? row.answers : []) {
+                let saved = try await KICEArchive.save(a, exam: exam, year: year, to: dir)
+                for url in saved { print(url.path) }
+            }
+        }
+    } catch {
+        fail("받지 못했어요: \(error.localizedDescription)")
     }
 }
 

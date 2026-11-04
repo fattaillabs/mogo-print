@@ -13,7 +13,8 @@ import UniformTypeIdentifiers
 /// - `--snapshot-drop-more`: 미리보기 위에 하나 더 놓는다(PDF 뷰가 드롭을 가로채지 않는지).
 /// - 저장: empty.png, main.png/pdf, manual.png, manual-dragged.png, adjusted.pdf, confirm.png, report.json (PNG는 2배 해상도)
 /// - 캡처용: `--snapshot-appearance light`, `--snapshot-size 1180x800`(창 내용 크기), `--snapshot-copies 2`(부수),
-///   `--snapshot-elective 언매`(선택과목, 여러 번). 점검 중에는 저장된 선택과목을 읽지도 쓰지도 않는다.
+///   `--snapshot-elective 언매`(선택과목, 여러 번), `--snapshot-kice 1`(평가원 기출 받기 창, 목록만 불러옴).
+///   점검 중에는 저장된 선택과목을 읽지도 쓰지도 않는다.
 /// - `--snapshot-quit`처럼 값 없는 옵션은 반드시 맨 뒤에 둔다(아래 forcedColorScheme 설명).
 @MainActor
 enum DebugSnapshot {
@@ -183,6 +184,18 @@ enum DebugSnapshot {
                 report["confirm_sheet"] = true
             }
             model.showPrintConfirm = false
+            await pause(0.5)
+        }
+
+        // 평가원 기출 받기 창(목록만 불러오고 받지는 않는다).
+        if values("--snapshot-kice").first == "1" {
+            model.showKICE = true
+            if await wait(3, { mainWindow?.attachedSheet != nil }) {
+                await pause(8) // 평가원 홈페이지에서 학년도·목록을 불러올 시간
+                capture(mainWindow?.attachedSheet, to: dir.appendingPathComponent("kice.png"))
+                report["kice_sheet"] = true
+            }
+            model.showKICE = false
             await pause(0.5)
         }
 
