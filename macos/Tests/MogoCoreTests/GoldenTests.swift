@@ -2,7 +2,7 @@ import Foundation
 import MogoCore
 import XCTest
 
-/// 샘플별 정답값(docs/expected/samples.json)과 비교한다. 윈도우판도 같은 파일로 시험해 두 판의 결과를 맞춘다.
+/// 시험지별 기준값(docs/expected/samples.json)과 비교한다. Windows 버전도 같은 파일로 검증해 두 버전의 결과를 맞춘다.
 ///
 /// 값을 새로 쓰려면: `MOGO_UPDATE_GOLDEN=1 swift test --filter GoldenTests`
 final class GoldenTests: XCTestCase {
@@ -47,7 +47,7 @@ final class GoldenTests: XCTestCase {
 
         if ProcessInfo.processInfo.environment["MOGO_UPDATE_GOLDEN"] == "1" {
             let doc: [String: Any] = [
-                "about": "모고 프린트 샘플 정답값. 맥·윈도우판이 같은 값을 내야 한다. 규칙은 docs/ALGORITHM.md. 허용 오차: 여백 ±1mm, 배율 ±0.01",
+                "about": "모고 프린트 시험지별 기준값. macOS·Windows 버전이 같은 값을 내야 한다. 규칙은 docs/ALGORITHM.md. 허용 오차: 여백 ±1mm, 배율 ±0.01",
                 "settings": ["paper": "A4", "paper_margin_mm": 5, "padding_mm": 1.5, "variant": "odd", "ink_dpi": 50, "ink_threshold": 200],
                 "files": measured,
             ]
@@ -62,7 +62,7 @@ final class GoldenTests: XCTestCase {
         let golden = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         let expected = try XCTUnwrap(golden["files"] as? [[String: Any]])
         let byPath = Dictionary(uniqueKeysWithValues: measured.map { ($0["path"] as! String, $0) })
-        XCTAssertEqual(Set(byPath.keys), Set(expected.map { $0["path"] as! String }), "샘플 목록이 정답값과 다름")
+        XCTAssertEqual(Set(byPath.keys), Set(expected.map { $0["path"] as! String }), "시험지 목록이 기준값과 다름")
 
         for e in expected {
             let path = e["path"] as! String

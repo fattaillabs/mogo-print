@@ -1,5 +1,5 @@
 {
-  "about" : "모고 프린트 샘플 정답값. 맥·윈도우판이 같은 값을 내야 한다. 규칙은 docs/ALGORITHM.md. 허용 오차: 여백 ±1mm, 배율 ±0.01",
+  "about" : "모고 프린트 시험지별 기준값. macOS·Windows 버전이 같은 값을 내야 한다. 규칙은 docs/ALGORITHM.md. 허용 오차: 여백 ±1mm, 배율 ±0.01",
   "files" : [
     {
       "both_variants" : false,

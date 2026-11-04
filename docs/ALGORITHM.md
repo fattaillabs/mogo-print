@@ -1,7 +1,7 @@
 # 자르기·배치 규칙
 
-맥판(`macos/Sources/MogoCore`)이 하는 일을 플랫폼과 상관없이 적은 문서다. 윈도우판 등 다른 구현은 이 규칙을 따르고,
-샘플 정답값 [`expected/samples.json`](expected/samples.json)과 같은 결과(여백 ±1mm, 배율 ±0.01)를 내야 한다.
+macOS 버전(`macos/Sources/MogoCore`)이 하는 일을 플랫폼과 상관없이 적은 문서다. Windows 버전 등 다른 구현은 이 규칙을 따르고,
+시험지별 기준값 [`expected/samples.json`](expected/samples.json)과 같은 결과(여백 ±1mm, 배율 ±0.01)를 내야 한다.
 
 ## 1. 파일 받기
 - PDF 파일이나 폴더를 받는다. 폴더는 하위 폴더까지 펼친다.
@@ -54,7 +54,7 @@
 - 인쇄 전에 프린터·분량·설정·형·파일 목록을 보여 주고 확인받는다.
 - 프린터의 A4 인쇄 불가 여백(네 변 중 가장 큰 값)이 종이 여백보다 크면 경고한다.
 
-## 정답값 파일
+## 기준값 파일
 `expected/samples.json`의 `files` 항목 하나는 위 규칙을 **파일 하나만, 기본 설정(A4·여백 5mm·홀수형)**으로 돌린 결과다.
 
 | 키 | 뜻 |
@@ -69,4 +69,4 @@
 | `scale` | 원본 대비 배율 |
 
 샘플 PDF 자체는 평가원 저작물이라 저장소에 없다. 평가원 수능 홈페이지 기출문제 게시판에서 받아 `Samples/`에 같은 경로로 두면 된다.
-맥판 값 다시 쓰기: `cd macos && MOGO_UPDATE_GOLDEN=1 swift test --filter GoldenTests`.
+macOS 버전에서 기준값 다시 생성: `cd macos && MOGO_UPDATE_GOLDEN=1 swift test --filter GoldenTests`.
