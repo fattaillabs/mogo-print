@@ -118,8 +118,8 @@ drawSheet(at: left) { c in
     c.drawPDFPage(original)
 }
 drawSheet(at: right) { c in c.drawPDFPage(imposed) }
-label("그냥 A4에 맞춰 인쇄", "원본 대비 \(Int((plainScale * 100).rounded()))%, 바깥 여백까지 같이 줄어듦",
+label("그냥 A4에 맞춰 인쇄", "원본 대비 글자 크기 \(Int((plainScale * 100).rounded()))%, 바깥 여백까지 같이 줄어듦",
       centerX: left.x + sheet.width / 2, y: caption - 34)
-label("모고 프린트", "원본 대비 \(Int((result.sections[0].scale * 100).rounded()))%, 여백을 잘라 A4에 꽉 차게",
+label("모고 프린트", "원본 대비 글자 크기 \(Int((result.sections[0].scale * 100).rounded()))%, 여백을 잘라 A4에 꽉 차게",
       centerX: right.x + sheet.width / 2, y: caption - 34)
 save(ctx, "before-after.png")

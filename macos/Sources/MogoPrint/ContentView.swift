@@ -235,7 +235,7 @@ struct PreviewPane: View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 if model.outputPageCount > 0 {
-                    Text("A4 \(model.outputPageCount)쪽 · 종이 \(model.sheetCount)장 · 원본 대비 약 \(model.displayScale)%")
+                    Text("A4 \(model.outputPageCount)쪽 · 종이 \(model.sheetCount)장 · 원본 대비 글자 크기 \(model.displayScale)%")
                         .font(.callout)
                 }
                 if model.isWorking { ProgressView().controlSize(.small) }
@@ -331,7 +331,7 @@ struct ManualCropView: View {
                 Button { position += 1 } label: { Image(systemName: "chevron.right") }
                     .disabled(position >= pages.count - 1)
                 Spacer()
-                Text("원본 대비 \(Int((Imposer.scale(for: current, options: model.options) * 100).rounded()))%")
+                Text("원본 대비 글자 크기 \(Int((Imposer.scale(for: current, options: model.options) * 100).rounded()))%")
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                 Button("원래대로") { reset() }
@@ -680,7 +680,7 @@ struct PrintConfirmView: View {
             Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 8) {
                 row("프린터", s.printer.replacingOccurrences(of: "_", with: " "))
                 row("분량", "A4 \(model.outputPageCount)쪽 · 종이 \(model.sheetCount)장 × \(s.copies)부")
-                row("설정", "\(s.duplex ? "양면 (긴 쪽 넘김)" : "단면") · \(s.grayscale ? "흑백" : "컬러") · 원본 대비 약 \(model.displayScale)%")
+                row("설정", "\(s.duplex ? "양면 (긴 쪽 넘김)" : "단면") · \(s.grayscale ? "흑백" : "컬러") · 원본 대비 글자 크기 \(model.displayScale)%")
                 if model.hasCombinedVariants {
                     row("시험지 형", model.options.variant.rawValue)
                 }
