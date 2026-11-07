@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- System.Printing(PrintTicket)으로 v4 드라이버의 흑백·양면을 넣는다 -->
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Mogo.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- PDFium(구글 크롬의 PDF 엔진) 윈도우용 바이너리. 렌더링·글자 추출·쪽 가져오기·저장·프린터 출력에 쓴다. -->
+    <PackageReference Include="bblanchon.PDFium.Win32" Version="159.0.8138" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 테스트에서 PDFium 핸들로 시험용 PDF를 만들 수 있게 -->
+    <InternalsVisibleTo Include="Mogo.Core.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- UseWPF면 기본 using에서 System.IO·System.Net.Http가 빠진다 -->
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+  </ItemGroup>
+</Project>

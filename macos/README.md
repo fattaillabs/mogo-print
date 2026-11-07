@@ -110,4 +110,4 @@ build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/snap \
 - [x] 서명·공증한 앱을 GitHub Releases로 배포 (release.sh)
 - [ ] 앱 안에서 새 버전 알림(Sparkle 등)
 - [x] 평가원에서 바로 받기 (EBSi 교육청 학력평가는 아직)
-- [ ] Windows 버전 (`../windows/`, 규칙은 `../docs/ALGORITHM.md`)
+- [x] Windows 버전 (`../windows/`, 규칙은 `../docs/ALGORITHM.md`)

@@ -49,7 +49,7 @@ final class GoldenTests: XCTestCase {
 
         if ProcessInfo.processInfo.environment["MOGO_UPDATE_GOLDEN"] == "1" {
             let doc: [String: Any] = [
-                "about": "모고 프린트 시험지별 기준값. macOS·Windows 버전이 같은 값을 내야 한다. 규칙은 docs/ALGORITHM.md. 허용 오차: 여백 ±1mm, 배율 ±0.01",
+                "about": "모고 프린트 시험지별 기준값. macOS·Windows 버전이 같은 값을 내야 한다. 규칙은 docs/ALGORITHM.md. 허용 오차: 여백 ±1.5mm(렌더러 차이), 배율 ±0.01",
                 "settings": ["paper": "A4", "paper_margin_mm": 5, "padding_mm": 1.5, "variant": "odd", "ink_dpi": 50, "ink_threshold": 200],
                 "files": measured,
             ]

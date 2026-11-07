@@ -2,7 +2,7 @@
 
 <h1 align="center">모고 프린트</h1>
 
-<p align="center">모의고사 PDF를 A4에 맞춰 인쇄하는 macOS 앱</p>
+<p align="center">모의고사 PDF를 A4에 맞춰 인쇄하는 macOS·Windows 앱</p>
 
 <p align="center"><img src="docs/images/screenshot-main.png" width="900" alt="모고 프린트 메인 화면"></p>
 
@@ -10,7 +10,7 @@
 
 ## 소개
 
-모고 프린트는 평가원·교육청 모의고사 PDF를 집에 있는 A4 프린터로 인쇄하기 좋게 다시 배치하는 macOS 앱입니다.
+모고 프린트는 평가원·교육청 모의고사 PDF를 집에 있는 A4 프린터로 인쇄하기 좋게 다시 배치하는 macOS·Windows 앱입니다.
 PDF를 창에 끌어다 놓으면 바깥 여백을 자동으로 잘라 A4에 맞추고, 미리보기로 확인한 뒤 바로 인쇄할 수 있습니다.
 같은 작업을 터미널에서 하는 명령줄 도구도 함께 들어 있습니다.
 
@@ -36,6 +36,8 @@ PDF를 창에 끌어다 놓으면 바깥 여백을 자동으로 잘라 A4에 맞
 
 ## 설치
 
+### macOS
+
 1. **[최신 버전 내려받기 (MogoPrint.dmg)](https://github.com/fattaillabs/mogo-print/releases/latest/download/MogoPrint.dmg)**
 2. 내려받은 `MogoPrint.dmg`를 더블클릭해 엽니다.
 3. 열린 창에서 `MogoPrint`를 옆의 `응용 프로그램` 폴더로 끌어다 놓습니다.
@@ -49,6 +51,20 @@ PDF를 창에 끌어다 놓으면 바깥 여백을 자동으로 잘라 A4에 맞
 - **업데이트**: 새 버전 DMG를 받아 같은 방법으로 응용 프로그램 폴더에 덮어씁니다. 고른 선택과목 같은 설정은 그대로 남습니다.
 - **삭제**: 응용 프로그램 폴더의 `MogoPrint`를 휴지통으로 옮깁니다. 받은 시험지는 다운로드 폴더의 `모고 프린트` 폴더에 그대로 있습니다.
 
+### Windows
+
+1. **[최신 버전 내려받기 (MogoPrint-windows-x64.zip)](https://github.com/fattaillabs/mogo-print/releases/latest/download/MogoPrint-windows-x64.zip)**
+2. 내려받은 zip 파일을 마우스 오른쪽 버튼으로 눌러 `압축 풀기`를 고릅니다.
+3. 압축을 푼 `MogoPrint.exe`를 원하는 폴더(예: `문서`)에 두고 실행합니다. 따로 설치하는 과정은 없습니다.
+4. 처음 실행할 때 "Windows의 PC 보호" 창이 뜨면 `추가 정보`를 누른 뒤 `실행`을 누릅니다.
+   코드 서명 인증서가 없는 앱이라 처음 한 번 뜨는 창입니다.
+5. 자주 쓴다면 `MogoPrint.exe`를 마우스 오른쪽 버튼으로 눌러 `시작 화면에 고정`하거나 바탕 화면에 바로 가기를 만듭니다.
+   바로 가기 아이콘에 PDF를 끌어다 놓아도 열립니다.
+
+- **지원 환경**: Windows 10·11 64비트. .NET을 따로 설치하지 않아도 됩니다.
+- **업데이트**: 새 버전의 `MogoPrint.exe`로 바꿉니다. 고른 선택과목 같은 설정은 그대로 남습니다.
+- **삭제**: `MogoPrint.exe`를 지웁니다. 설정은 `%APPDATA%\MogoPrint` 폴더에, 받은 시험지는 다운로드 폴더의 `모고 프린트` 폴더에 남습니다.
+
 지난 버전과 바뀐 내용은 [릴리스 페이지](https://github.com/fattaillabs/mogo-print/releases)에서 볼 수 있습니다.
 
 ### 소스에서 빌드하기
@@ -60,6 +76,14 @@ git clone https://github.com/fattaillabs/mogo-print.git
 cd mogo-print/macos
 bash build_app.sh
 open build/MogoPrint.app
+```
+
+Windows 버전은 [.NET 10 SDK](https://dotnet.microsoft.com/download)로 빌드합니다.
+
+```powershell
+git clone https://github.com/fattaillabs/mogo-print.git
+cd mogo-print\windows
+dotnet run --project MogoPrint
 ```
 
 ## 사용법
@@ -117,6 +141,9 @@ A4 가장자리에 남길 흰 여백은 왼쪽 아래 설정의 "종이 여백"�
 sudo ln -s /Applications/MogoPrint.app/Contents/MacOS/mogo-cli /usr/local/bin/mogo-cli
 ```
 
+Windows에서는 [mogo-cli-windows-x64.zip](https://github.com/fattaillabs/mogo-print/releases/latest/download/mogo-cli-windows-x64.zip)을 받아
+압축을 푼 `mogo-cli.exe`를 씁니다. 옵션은 같고, `--dry-run`은 lp 명령 대신 프린터가 받아들일 설정을 보여 줍니다.
+
 파일만 지정하면 배치 결과를 요약해서 보여 줍니다.
 
 ```console
@@ -159,7 +186,8 @@ $ mogo-cli --download 수능 2026 --area 국어,수학,사회탐구
 |---|---|
 | `-o`, `--output 파일.pdf` | A4로 배치한 PDF 저장 |
 | `-p`, `--print` | 바로 인쇄 (기본: 양면 긴 쪽 넘김, 흑백, 1부) |
-| `--dry-run` | `--print`와 함께 쓰면 실제로 보내지 않고 lp 명령만 출력 |
+| `--dry-run` | `--print`와 함께 쓰면 실제로 보내지 않고 lp 명령(Windows는 프린터가 받아들일 설정)만 출력 |
+| `--print-to-file 파일` | Windows만. `--print`와 함께 쓰면 프린터 출력을 파일로 저장 (Microsoft Print to PDF 등) |
 | `--json` | 요약을 JSON으로 출력 (쪽수, 자른 여백, 배율 등) |
 | `--variant odd\|even\|all` | 홀·짝 합본 파일에서 고를 형 (기본 `odd`) |
 | `--elective 과목` | 고를 선택과목: `화작`, `언매`, `확통`, `미적`, `기하` (국어·수학 하나씩, 여러 번 사용) |
@@ -186,7 +214,7 @@ $ mogo-cli --download 수능 2026 --area 국어,수학,사회탐구
 
 ```
 macos/     macOS 앱과 명령줄 도구 (Swift, SwiftUI, PDFKit). 빌드와 테스트는 macos/README.md 참고
-windows/   Windows 버전 (준비 중)
+windows/   Windows 앱과 명령줄 도구 (C#, WPF, PDFium). 빌드와 테스트는 windows/README.md 참고
 docs/      자르기·배치 규칙(ALGORITHM.md), 시험지별 기준값(expected/), 예시 문제지(demo/), README 이미지(images/)
 ```
 
@@ -209,9 +237,10 @@ shows a preview, and prints double-sided in grayscale. It can also download past
 and inserts blank pages so every subject starts on a new sheet. A command line tool, `mogo-cli`,
 does the same from the terminal.
 
-- macOS 14 or later (Apple Silicon and Intel). A Windows version is planned.
-- Install: download [MogoPrint.dmg](https://github.com/fattaillabs/mogo-print/releases/latest/download/MogoPrint.dmg) (signed and notarized), open it, and drag MogoPrint to Applications.
-- Build from source: `cd macos && bash build_app.sh`, then open `build/MogoPrint.app`.
+- macOS 14 or later (Apple Silicon and Intel), and Windows 10/11 (64-bit).
+- Install on macOS: download [MogoPrint.dmg](https://github.com/fattaillabs/mogo-print/releases/latest/download/MogoPrint.dmg) (signed and notarized), open it, and drag MogoPrint to Applications.
+- Install on Windows: download [MogoPrint-windows-x64.zip](https://github.com/fattaillabs/mogo-print/releases/latest/download/MogoPrint-windows-x64.zip), extract it, and run `MogoPrint.exe` (no installer, no .NET install needed). The app is not code-signed, so SmartScreen asks once: choose "More info", then "Run anyway".
+- Build from source: `cd macos && bash build_app.sh` on macOS, or `cd windows && dotnet run --project MogoPrint` with the .NET 10 SDK on Windows.
 - Try it with the sample PDFs in `docs/demo` (made for this project, not real exams).
 - Real exam PDFs are not included because they are copyrighted by KICE. This project is not affiliated with KICE.
 - MIT licensed.

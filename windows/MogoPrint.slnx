@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Mogo.Core/Mogo.Core.csproj" />
+  <Project Path="Mogo.Cli/Mogo.Cli.csproj" />
+  <Project Path="Mogo.Core.Tests/Mogo.Core.Tests.csproj" />
+  <Project Path="MogoPrint/MogoPrint.csproj" />
+</Solution>
