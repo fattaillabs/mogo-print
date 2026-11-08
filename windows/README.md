@@ -14,7 +14,8 @@ dotnet test Mogo.Core.Tests                       # 테스트
 powershell -File publish.ps1 -Version 0.1.0       # 배포용 단일 exe와 zip (artifacts\)
 ```
 
-`publish.ps1`은 .NET과 PDFium을 exe 안에 넣은 단일 실행 파일을 만듭니다(64비트, 약 66MB).
+`publish.ps1`은 .NET과 PDFium을 exe 안에 넣은 단일 실행 파일을 만들고 zip으로 묶습니다(64비트, exe 약 66MB).
+zip 안에는 exe 하나만 들어 있어 받는 사람은 압축을 풀고 바로 실행합니다.
 `artifacts\MogoPrint-windows-x64.zip`과 `artifacts\mogo-cli-windows-x64.zip`을 GitHub Releases에 올리면
 최상위 README의 고정 링크(`releases/latest/download/…`)가 그 파일을 가리킵니다. 파일 이름은 바꾸지 않습니다.
 
@@ -91,16 +92,9 @@ Start-Process MogoPrint.exe -Wait -ArgumentList @(
 - 양면을 지원하지 않는 프린터면 단면으로 계산해 빈 쪽을 넣지 않고, 설정 칸과 인쇄 확인 창에서 알립니다.
 - 검증 기록(Windows Server 2025, 가상 프린터): Microsoft Print to PDF로 파일에 인쇄해 잉크 위치가 만든 PDF와 1.5pt 안으로 같은 것,
   흑백 변환, 부수 순서(1·2·3·1·2·3)를 확인했습니다. 멈춘 대기열의 작업에서는 A4·세로·부수와 PrintTicket의 A4·흑백을 확인했습니다.
-  실제 프린터로 양면 종이 출력은 아직 확인하지 않았습니다.
 
 ## 맥 버전과 다른 점
 
 - "PDF로 저장"한 결과에서도 본문 글자를 검색하고 복사할 수 있습니다. PDFium은 한컴 PDF의 글자 대응표를 그대로 옮깁니다(맥은 Quartz가 옮기지 못함).
 - 폴더는 "파일 선택" 창으로 고를 수 없어서 창에 끌어다 놓습니다.
 - 코드 서명 인증서가 없어 처음 실행할 때 SmartScreen("Windows의 PC 보호") 창이 뜹니다.
-
-## 할 일
-
-- [ ] 실제 프린터로 양면 종이 출력 확인
-- [ ] 코드 서명
-- [ ] GitHub Actions에서 빌드·테스트

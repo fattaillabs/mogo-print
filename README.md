@@ -54,8 +54,8 @@ PDF를 창에 끌어다 놓으면 바깥 여백을 자동으로 잘라 A4에 맞
 ### Windows
 
 1. **[최신 버전 내려받기 (MogoPrint-windows-x64.zip)](https://github.com/fattaillabs/mogo-print/releases/latest/download/MogoPrint-windows-x64.zip)**
-2. 내려받은 zip 파일을 마우스 오른쪽 버튼으로 눌러 `압축 풀기`를 고릅니다.
-3. 압축을 푼 `MogoPrint.exe`를 원하는 폴더(예: `문서`)에 두고 실행합니다. 따로 설치하는 과정은 없습니다.
+2. 내려받은 zip 파일을 마우스 오른쪽 버튼으로 눌러 `압축 풀기`를 고릅니다. 압축을 풀면 `MogoPrint.exe` 파일 하나가 나옵니다.
+3. `MogoPrint.exe`를 원하는 폴더(예: `문서`)에 두고 더블클릭해 실행합니다. 따로 설치하는 과정은 없습니다.
 4. 처음 실행할 때 "Windows의 PC 보호" 창이 뜨면 `추가 정보`를 누른 뒤 `실행`을 누릅니다.
    코드 서명 인증서가 없는 앱이라 처음 한 번 뜨는 창입니다.
 5. 자주 쓴다면 `MogoPrint.exe`를 마우스 오른쪽 버튼으로 눌러 `시작 화면에 고정`하거나 바탕 화면에 바로 가기를 만듭니다.
@@ -66,6 +66,8 @@ PDF를 창에 끌어다 놓으면 바깥 여백을 자동으로 잘라 A4에 맞
 - **삭제**: `MogoPrint.exe`를 지웁니다. 설정은 `%APPDATA%\MogoPrint` 폴더에, 받은 시험지는 다운로드 폴더의 `모고 프린트` 폴더에 남습니다.
 
 지난 버전과 바뀐 내용은 [릴리스 페이지](https://github.com/fattaillabs/mogo-print/releases)에서 볼 수 있습니다.
+릴리스 페이지 아래쪽의 `Source code (zip)`, `Source code (tar.gz)`는 GitHub가 자동으로 붙이는 소스 코드 묶음이라 받아도 실행되지 않습니다.
+앱은 `MogoPrint.dmg`(macOS)나 `MogoPrint-windows-x64.zip`(Windows)을 받으세요.
 
 ### 소스에서 빌드하기
 

@@ -104,10 +104,3 @@ build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/snap \
 
 - 한컴오피스(HWP)로 만든 평가원 PDF는 글자 대응표(`Unidocs-HWP2002-UCS2`)를 Quartz가 새 PDF로 옮기지 못합니다.
   그래서 "PDF로 저장"한 결과에서는 본문 글자 검색과 복사가 되지 않습니다. 글자 모양은 벡터 그대로라 인쇄 품질과는 관계없습니다.
-
-## 할 일
-
-- [x] 서명·공증한 앱을 GitHub Releases로 배포 (release.sh)
-- [ ] 앱 안에서 새 버전 알림(Sparkle 등)
-- [x] 평가원에서 바로 받기 (EBSi 교육청 학력평가는 아직)
-- [x] Windows 버전 (`../windows/`, 규칙은 `../docs/ALGORITHM.md`)
