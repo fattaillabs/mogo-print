@@ -1,9 +1,10 @@
 // README 그림을 만든다. 앱 자동 점검 캡처에 둥근 모서리·그림자를 입히고, 원본/결과 비교 그림을 그린다.
+// screenshot-ebsi.png는 --snapshot-ebsi demo(EBSi 접속 없이 예시 목록)로 찍는다.
 //
 //     cd macos
 //     bash build_app.sh
 //     build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/mogo-shots --snapshot-appearance light \
-//       --snapshot-size 1180x800 --snapshot-copies 2 --snapshot-elective 언매 --snapshot-elective 미적 --snapshot-kice 1 \
+//       --snapshot-size 1180x800 --snapshot-copies 2 --snapshot-elective 언매 --snapshot-elective 미적 --snapshot-kice 1 --snapshot-ebsi demo \
 //       --snapshot-drop "$PWD/../docs/demo/예시_국어_문제지.pdf" --snapshot-drop "$PWD/../docs/demo/예시_수학_문제지.pdf" \
 //       --snapshot-quit
 //     swiftc -O Sources/MogoCore/*.swift Tools/readme-images/main.swift -o /tmp/readme-images
@@ -63,6 +64,7 @@ framed("main.png", as: "screenshot-main.png", maxWidth: 1800)
 framed("empty.png", as: "screenshot-drop.png", maxWidth: 1400)
 framed("confirm.png", as: "screenshot-confirm.png", radius: 18)
 framed("kice.png", as: "screenshot-kice.png", radius: 18)
+framed("ebsi.png", as: "screenshot-ebsi.png", radius: 18)
 framed("manual.png", as: "screenshot-manual.png", maxWidth: 1800)
 
 // MARK: 원본(그냥 A4에 맞춤) vs 모고 프린트 비교

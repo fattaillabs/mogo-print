@@ -39,9 +39,11 @@ Sources/MogoCore/        자르기·배치·인쇄 로직 (UI 없음)
   Imposer.swift          자를 범위와 배율 계산, 수동 조정, 빈 쪽, A4에 벡터로 그리기, 폴더 펼치기
   CropGuides.swift       여백 수동 조정 화면의 네 변 점선 계산(끌기 제한, 점선 위치 ↔ 조정값)
   KICEArchive.swift      평가원 기출문제 게시판 읽기·받기(학년도, 영역, 첨부 분류, ZIP 풀기)
+  EBSiArchive.swift      EBSi 기출문제에서 교육청 학력평가 받기(로그인 확인, 시험 달 찾기, 목록 읽기, 문제지·해설 저장)
   ZipArchive.swift       평가원 ZIP 풀기(저장·deflate, CP949 파일 이름). macOS 기본 unzip은 이름이 깨진다
   Printing.swift         lp(CUPS) 인쇄, 드라이버 옵션 자동 추가, PPD에서 인쇄 불가 여백 읽기
-Sources/MogoPrint/       SwiftUI 앱 (KICEDownloadView.swift는 평가원 받기 창, DebugSnapshot.swift는 개발용 자동 UI 점검)
+Sources/MogoPrint/       SwiftUI 앱 (KICEDownloadView.swift는 기출 받기 창과 평가원 탭, EBSiDownloadView.swift는 교육청 학평 탭과
+                         앱 안 EBSi 로그인 창, DebugSnapshot.swift는 개발용 자동 UI 점검)
 Sources/mogo-cli/        명령줄 도구
 Tests/MogoCoreTests/     합성 PDF 테스트, 실제 시험지 테스트, 기준값 비교, 여백 조정 점선 계산, mogo-cli 실행 테스트
 Tools/make-demo.swift    docs/demo 예시 문제지 생성 (swift Tools/make-demo.swift ../docs/demo)
@@ -57,6 +59,8 @@ Resources/               Info.plist, AppIcon.icns, IconSource/(아이콘 원본�
 - `CLITests`는 빌드된 `mogo-cli`를 docs/demo 예시 문제지로 직접 실행해 요약, JSON, 저장, `--dry-run` 인쇄, 잘못된 인자 처리를 확인합니다.
 - 저장소 최상위 `Samples/`에 실제 시험지 PDF가 있으면 실제 시험지 테스트와 기준값 비교(`GoldenTests`)도 실행되고, 없으면 건너뜁니다.
   시험지는 평가원 저작물이라 저장소에 넣지 않습니다. 기준값 파일(`../docs/expected/samples.json`)에 적힌 경로대로 받아 두면 됩니다.
+- `EBSiTests`는 EBSi 기출문제 페이지와 목록 읽기를 확인합니다. EBSi 내용을 옮기지 않고 구조(줄 상자, 왼쪽 칸 글, 버튼 함수)만 흉내 낸 HTML을 쓰며,
+  로그인이 아니면 목록 요청을 보내지 않는지도 봅니다. 실제 받기는 앱 안에서 EBSi에 로그인해 확인합니다.
 - 평가원 홈페이지에 실제로 접속하는 테스트는 `MOGO_NETWORK_TESTS=1 swift test --filter testLiveDownload`로만 실행됩니다
   (학년도 목록, 2026 수능 목록, PDF 받기, 2022 국어 ZIP 풀기, 6월 모평 목록). `Samples/_zips`에 실제 ZIP이 있으면 ZIP 테스트도 그것으로 확인합니다.
 - 규칙을 의도적으로 바꿨다면 기준값을 다시 생성합니다: `MOGO_UPDATE_GOLDEN=1 swift test --filter GoldenTests`.
@@ -78,7 +82,9 @@ build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/snap \
 - 저장 파일: `empty.png`, `main.png`, `preview.pdf`(미리보기 내용), `manual.png`(여백 수동 조정 화면), `confirm.png`(인쇄 확인 창),
   `report.json`(쪽수, 배율, 드롭 결과 등).
 - 캡처 옵션: `--snapshot-appearance light|dark`, `--snapshot-size 1180x780`(창 내용 크기), `--snapshot-copies 2`,
-  `--snapshot-elective 언매`(여러 번), `--snapshot-kice 1`(평가원 받기 창을 열어 목록만 불러와 `kice.png`로 저장, 받지는 않음).
+  `--snapshot-elective 언매`(여러 번), `--snapshot-kice 1`(기출 받기 창의 평가원 탭을 열어 목록만 불러와 `kice.png`로 저장, 받지는 않음),
+  `--snapshot-ebsi 1|demo`(교육청 학평 탭을 `ebsi.png`로 저장. `1`은 실제 로그인 상태대로, `demo`는 EBSi에 접속하지 않고 예시 목록으로).
+  EBSi 로그인은 앱을 닫으면 풀리는 세션이라, 자동 점검으로 띄운 앱에서는 보통 로그인 전 화면이 나옵니다. README 그림은 `demo`로 찍습니다.
   자동 점검 중에는 사용자가 저장해 둔 선택과목을 읽거나 쓰지 않습니다.
   PNG는 2배 해상도이며, 앱이 비활성 상태여도 활성 창 모양으로 그립니다.
 - **값이 없는 옵션(`--snapshot-quit`)은 반드시 맨 뒤에 둡니다.** macOS는 `-이름 값`을 한 쌍으로 읽기 때문에, 값이 없는 옵션이 중간에 있으면

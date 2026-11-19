@@ -38,11 +38,24 @@ struct KICEDownloadView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("평가원 기출 받기").font(.title2.bold())
-            if results.isEmpty { chooseView } else { pickView }
+            HStack {
+                Text("기출 받기").font(.title2.bold())
+                Spacer()
+                if results.isEmpty {
+                    Picker("받을 곳", selection: $model.downloadSource) {
+                        ForEach(DownloadSource.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(width: 300)
+                }
+            }
+            if model.downloadSource == .ebsi {
+                EBSiDownloadPane(dismiss: { dismiss() })
+            } else if results.isEmpty { chooseView } else { pickView }
         }
         .padding(22)
-        .frame(width: 540, height: 560)
+        .frame(width: 560, height: 600)
         .task(id: exam) { await loadYears() }
         .task(id: RowsKey(exam: exam, year: year)) { await loadRows() }
     }

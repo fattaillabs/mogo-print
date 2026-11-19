@@ -68,7 +68,7 @@ struct DropZoneView: View {
                 .foregroundStyle(.secondary)
             HStack(spacing: 12) {
                 Button("파일 선택…") { model.openPanel() }
-                Button("평가원에서 받기…") { model.showKICE = true }
+                Button("기출 받기…") { model.showKICE = true }
             }
             .controlSize(.large)
         }

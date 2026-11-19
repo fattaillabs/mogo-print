@@ -35,8 +35,9 @@ final class AppModel: ObservableObject {
     @Published var status: String?
     @Published var errorMessage: String?
     @Published var showPrintConfirm = false
-    /// 평가원 기출 받기 창
+    /// 기출 받기 창과 그 창에서 고른 곳(평가원 / 교육청 학평)
     @Published var showKICE = false
+    @Published var downloadSource: DownloadSource = .kice
     /// 여백 수동 조정 중인 파일(nil이면 꺼짐). 켜면 미리보기가 원본 쪽과 네 변의 점선으로 바뀐다.
     @Published var manualCropFileID: UUID?
     /// 수동 조정을 켤 때 처음 보여 줄 쪽(그 파일의 고른 형 쪽 목록에서 몇 번째).
@@ -306,4 +307,11 @@ final class AppModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
+}
+
+/// 기출 받기 창에서 받을 곳.
+enum DownloadSource: String, CaseIterable, Identifiable {
+    case kice = "평가원 (수능·모평)"
+    case ebsi = "교육청 학평 (EBSi)"
+    var id: String { rawValue }
 }

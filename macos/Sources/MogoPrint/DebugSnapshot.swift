@@ -13,7 +13,7 @@ import UniformTypeIdentifiers
 /// - `--snapshot-drop-more`: 미리보기 위에 하나 더 놓는다(PDF 뷰가 드롭을 가로채지 않는지).
 /// - 저장: empty.png, main.png/pdf, manual.png, manual-dragged.png, adjusted.pdf, confirm.png, report.json (PNG는 2배 해상도)
 /// - 캡처용: `--snapshot-appearance light`, `--snapshot-size 1180x800`(창 내용 크기), `--snapshot-copies 2`(부수),
-///   `--snapshot-elective 언매`(선택과목, 여러 번), `--snapshot-kice 1`(평가원 기출 받기 창, 목록만 불러옴).
+///   `--snapshot-elective 언매`(선택과목, 여러 번), `--snapshot-kice 1`(기출 받기 창의 평가원 탭, 목록만 불러옴), `--snapshot-ebsi 1|demo`(교육청 학평 탭, demo는 접속 없이 예시 목록).
 ///   점검 중에는 저장된 선택과목을 읽지도 쓰지도 않는다.
 /// - `--snapshot-quit`처럼 값 없는 옵션은 반드시 맨 뒤에 둔다(아래 forcedColorScheme 설명).
 @MainActor
@@ -196,6 +196,22 @@ enum DebugSnapshot {
                 report["kice_sheet"] = true
             }
             model.showKICE = false
+            await pause(0.5)
+        }
+
+        // 교육청 학평(EBSi) 탭. 로그인 전이면 로그인 안내, 로그인했으면 가장 최근 학평 목록.
+        if let mode = values("--snapshot-ebsi").first, mode == "1" || mode == "demo" {
+            if mode == "demo" { EBSiDownloadPane.demo = Self.ebsiDemo }
+            model.downloadSource = .ebsi
+            model.showKICE = true
+            if await wait(3, { mainWindow?.attachedSheet != nil }) {
+                await pause(8) // EBSi에서 로그인 여부·목록을 불러올 시간
+                capture(mainWindow?.attachedSheet, to: dir.appendingPathComponent("ebsi.png"))
+                report["ebsi_sheet"] = true
+            }
+            model.showKICE = false
+            model.downloadSource = .kice
+            EBSiDownloadPane.demo = nil
             await pause(0.5)
         }
 
@@ -389,5 +405,29 @@ private final class FakeDraggingInfo: NSObject, NSDraggingInfo {
             block(NSDraggingItem(pasteboardWriter: writer), i, &stop)
             if stop.boolValue { break }
         }
+    }
+}
+
+extension DebugSnapshot {
+
+    /// `--snapshot-ebsi demo`: EBSi에 접속하지 않고 보여 줄 예시 목록. 2026년 10월 고3 학평(서울)의 과목 구성대로
+    /// 제목만 채운다(파일 주소는 가짜, 받기는 하지 않는다).
+    static var ebsiDemo: (page: String, rows: String) {
+        let page = "<script>var loginTF = 'true';</script>"
+            + [2026, 2025, 2024].map { "<input type=\"checkbox\" name=\"year\" value=\"\($0)\">" }.joined()
+            + "<input name=\"korArOrd\" value=\"1\"><input name=\"sFormPartKor\" value=\"1\">"
+        let subjects: [(String, String)] = [
+            ("국어", "화법과 작문"), ("국어", "언어와 매체"),
+            ("수학", "확률과 통계"), ("수학", "미적분"), ("수학", "기하"),
+            ("영어", "영어"), ("한국사", "한국사"),
+            ("사탐", "생활과 윤리"), ("사탐", "윤리와 사상"), ("사탐", "한국지리"), ("사탐", "세계지리"), ("사탐", "동아시아사"),
+            ("사탐", "세계사"), ("사탐", "정치와 법"), ("사탐", "경제"), ("사탐", "사회·문화"),
+            ("과탐", "물리학Ⅰ"), ("과탐", "화학Ⅰ"), ("과탐", "생명과학Ⅰ"), ("과탐", "지구과학Ⅰ"),
+        ]
+        let rows = subjects.enumerated().map { i, s in
+            "<div class=\"qus_box\"><div class=\"qus_inner left\">2026 10월 \(s.0) 고3 10월 학평(서울) \(s.1) 자료다운"
+                + "<a onclick=\"goDownLoadP('/demo/\(i).pdf', '', '', '', '', '', '0');\">문제</a></div></div>"
+        }.joined()
+        return (page, rows)
     }
 }
