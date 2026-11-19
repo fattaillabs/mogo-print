@@ -49,7 +49,7 @@ let usage = """
   mogo-cli --download 6월 2027 --area 사회탐구 --answers
 """
 
-let version = "0.1.0"
+let version = "0.2.0"
 
 func fail(_ message: String, code: Int32 = 1) -> Never {
     FileHandle.standardError.write("mogo-cli: \(message)\n".data(using: .utf8)!)
