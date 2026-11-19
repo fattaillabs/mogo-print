@@ -5,11 +5,13 @@ import SwiftUI
 struct MogoPrintApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var model = AppModel.shared
+    @StateObject private var updater = AppUpdater.shared
 
     var body: some Scene {
         Window("모고 프린트", id: "main") {
             ContentView()
                 .environmentObject(model)
+                .environmentObject(updater)
                 // 자동 점검 캡처용 화면 모드(--snapshot-appearance). 평소에는 시스템 설정을 따른다.
                 // NSApp.appearance를 바꾸면 SwiftUI 창이 아예 안 만들어져서 화면 쪽에서 정한다.
                 .preferredColorScheme(DebugSnapshot.forcedColorScheme)
@@ -17,6 +19,10 @@ struct MogoPrintApp: App {
                 .frame(minWidth: 960, minHeight: 680)
         }
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("업데이트 확인…") { Task { await updater.check(manual: true) } }
+                    .disabled(updater.isBusy)
+            }
             CommandGroup(replacing: .newItem) {
                 Button("열기…") { model.openPanel() }
                     .keyboardShortcut("o")
@@ -40,6 +46,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
         }
         Task { @MainActor in DebugSnapshot.startIfRequested() }
+        Task { @MainActor in
+            // 시험용: --update-now면 확인 창 없이 바로 확인하고 새 버전이 있으면 설치한다.
+            if ProcessInfo.processInfo.arguments.contains("--update-now") {
+                await AppUpdater.shared.check(manual: false)
+                if AppUpdater.shared.available != nil { await AppUpdater.shared.install() }
+            } else {
+                AppUpdater.shared.checkAutomatically()
+            }
+        }
     }
 
     /// Dock 아이콘에 끌어다 놓거나 Finder에서 "다음으로 열기"로 열 때.

@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var updater: AppUpdater
     @State private var isTargeted = false
 
     var body: some View {
@@ -40,6 +41,10 @@ struct ContentView: View {
             PrintConfirmView().environmentObject(model)
                 .modifier(DebugSnapshot.ActiveLook())
         }
+        .sheet(isPresented: $updater.showSheet) {
+            UpdateSheet().environmentObject(updater)
+                .modifier(DebugSnapshot.ActiveLook())
+        }
         .alert("확인해 주세요", isPresented: Binding(
             get: { model.errorMessage != nil },
             set: { if !$0 { model.errorMessage = nil } }
@@ -71,6 +76,7 @@ struct DropZoneView: View {
                 Button("기출 받기…") { model.showKICE = true }
             }
             .controlSize(.large)
+            UpdateNotice()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
@@ -292,6 +298,8 @@ struct PreviewPane: View {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                     Text(status).font(.callout).lineLimit(1)
                     Button("닫기") { model.status = nil }.buttonStyle(.plain).foregroundStyle(.secondary)
+                } else {
+                    UpdateNotice()
                 }
                 Spacer()
                 if model.manualCropFile != nil {

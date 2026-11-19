@@ -27,7 +27,8 @@ gh release create v0.1.0 build/release/MogoPrint.dmg --title "모고 프린트 0
 ```
 
 - 키체인에 `Developer ID Application` 인증서가 있어야 합니다(다른 인증서는 `SIGN_ID`로 지정).
-- 릴리스 파일 이름은 항상 `MogoPrint.dmg`로 둡니다. README의 고정 링크 `releases/latest/download/MogoPrint.dmg`가 이 이름을 가리킵니다.
+- 릴리스 파일 이름은 항상 `MogoPrint.dmg`로 둡니다. README의 고정 링크 `releases/latest/download/MogoPrint.dmg`와 자동 업데이트가 이 이름을 찾습니다.
+- 태그는 `v` + 앱 버전(`Resources/Info.plist`의 `CFBundleShortVersionString`)으로 둡니다. 자동 업데이트가 받은 앱의 버전이 태그와 같은지 확인합니다.
 - 공증 없이 서명·DMG까지만 시험하려면 `SKIP_NOTARIZE=1`.
 - 스크립트 끝에서 `spctl`로 DMG와 앱이 "Notarized Developer ID"로 통과하는지 확인합니다.
 
@@ -41,9 +42,10 @@ Sources/MogoCore/        자르기·배치·인쇄 로직 (UI 없음)
   KICEArchive.swift      평가원 기출문제 게시판 읽기·받기(학년도, 영역, 첨부 분류, ZIP 풀기)
   EBSiArchive.swift      EBSi 기출문제에서 교육청 학력평가 받기(로그인 확인, 시험 달 찾기, 목록 읽기, 문제지·해설 저장)
   ZipArchive.swift       평가원 ZIP 풀기(저장·deflate, CP949 파일 이름). macOS 기본 unzip은 이름이 깨진다
+  UpdateCheck.swift      GitHub 최신 릴리스 확인, 버전 비교
   Printing.swift         lp(CUPS) 인쇄, 드라이버 옵션 자동 추가, PPD에서 인쇄 불가 여백 읽기
 Sources/MogoPrint/       SwiftUI 앱 (KICEDownloadView.swift는 기출 받기 창과 평가원 탭, EBSiDownloadView.swift는 교육청 학평 탭과
-                         앱 안 EBSi 로그인 창, DebugSnapshot.swift는 개발용 자동 UI 점검)
+                         앱 안 EBSi 로그인 창, AppUpdater.swift는 자동 업데이트, DebugSnapshot.swift는 개발용 자동 UI 점검)
 Sources/mogo-cli/        명령줄 도구
 Tests/MogoCoreTests/     합성 PDF 테스트, 실제 시험지 테스트, 기준값 비교, 여백 조정 점선 계산, mogo-cli 실행 테스트
 Tools/make-demo.swift    docs/demo 예시 문제지 생성 (swift Tools/make-demo.swift ../docs/demo)
@@ -61,6 +63,7 @@ Resources/               Info.plist, AppIcon.icns, IconSource/(아이콘 원본�
   시험지는 평가원 저작물이라 저장소에 넣지 않습니다. 기준값 파일(`../docs/expected/samples.json`)에 적힌 경로대로 받아 두면 됩니다.
 - `EBSiTests`는 EBSi 기출문제 페이지와 목록 읽기를 확인합니다. EBSi 내용을 옮기지 않고 구조(줄 상자, 왼쪽 칸 글, 버튼 함수)만 흉내 낸 HTML을 쓰며,
   로그인이 아니면 목록 요청을 보내지 않는지도 봅니다. 실제 받기는 앱 안에서 EBSi에 로그인해 확인합니다.
+- `UpdateCheckTests`는 버전 비교와 릴리스 JSON 읽기(초안·시험판 무시)를 확인합니다. GitHub에 실제로 접속하는 확인은 `MOGO_NETWORK_TESTS=1`일 때만 합니다.
 - 평가원 홈페이지에 실제로 접속하는 테스트는 `MOGO_NETWORK_TESTS=1 swift test --filter testLiveDownload`로만 실행됩니다
   (학년도 목록, 2026 수능 목록, PDF 받기, 2022 국어 ZIP 풀기, 6월 모평 목록). `Samples/_zips`에 실제 ZIP이 있으면 ZIP 테스트도 그것으로 확인합니다.
 - 규칙을 의도적으로 바꿨다면 기준값을 다시 생성합니다: `MOGO_UPDATE_GOLDEN=1 swift test --filter GoldenTests`.
@@ -84,6 +87,7 @@ build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/snap \
 - 캡처 옵션: `--snapshot-appearance light|dark`, `--snapshot-size 1180x780`(창 내용 크기), `--snapshot-copies 2`,
   `--snapshot-elective 언매`(여러 번), `--snapshot-kice 1`(기출 받기 창의 평가원 탭을 열어 목록만 불러와 `kice.png`로 저장, 받지는 않음),
   `--snapshot-ebsi 1|demo`(교육청 학평 탭을 `ebsi.png`로 저장. `1`은 실제 로그인 상태대로, `demo`는 EBSi에 접속하지 않고 예시 목록으로).
+  `--snapshot-update 1`(가짜 새 버전 9.9.9로 업데이트 창을 `update.png`로 저장, 받지 않음).
   EBSi 로그인은 앱을 닫으면 풀리는 세션이라, 자동 점검으로 띄운 앱에서는 보통 로그인 전 화면이 나옵니다. README 그림은 `demo`로 찍습니다.
   자동 점검 중에는 사용자가 저장해 둔 선택과목을 읽거나 쓰지 않습니다.
   PNG는 2배 해상도이며, 앱이 비활성 상태여도 활성 창 모양으로 그립니다.
@@ -93,6 +97,19 @@ build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/snap \
 - 백그라운드로 실행한 앱은 스스로 활성화되지 않습니다. 이 상태에서는 앱 안에서 만든 마우스 이벤트가 '창을 앞으로 가져오는 첫 클릭'으로
   처리되어 버려지므로, 여백 조정 점선 끌기는 자동 점검으로 확인할 수 없습니다(`report.json`의 `manual_drag_*`).
   점선 위치 계산은 `CropGuidesTests`로 검증하고, 실제 끌기는 앱을 띄워 손으로 확인합니다.
+
+## 자동 업데이트
+
+- 확인: 앱을 열 때 `api.github.com/repos/fattaillabs/mogo-print/releases/latest`를 읽어 태그 버전이 앱 버전보다 높으면 첫 화면과 상태 줄에 알립니다.
+  초안과 시험판(prerelease)은 무시하고, 다른 정보는 보내지 않습니다. 앱 이름 메뉴의 `업데이트 확인…`으로 직접 확인할 수도 있습니다.
+- 받기와 확인: 릴리스의 `MogoPrint.dmg`를 받아 읽기 전용으로 붙이고(`hdiutil attach -nobrowse`), 안의 앱을 다음 기준으로 확인한 뒤에만 씁니다.
+  `codesign --verify --deep --strict` 통과, 팀 ID `BUS4S7XFQV`, 번들 ID `com.fattaillabs.mogoprint`, `spctl` 공증 통과, 앱 버전이 릴리스 태그와 같음.
+- 바꾸기: 확인한 앱을 지금 앱 옆에 `.MogoPrint-update-<버전>.app`으로 복사하고, 작은 셸 스크립트가 앱이 끝나기를 기다려
+  지금 앱과 바꾼 뒤 다시 엽니다. 바꾸기에 실패하면 원래 앱을 되돌립니다.
+- 응용 프로그램 폴더에 쓸 수 없거나 DMG 안에서 바로 실행 중이면 바꾸지 않고 릴리스 페이지를 엽니다.
+- 시험용 설정: `MOGO_UPDATE_FEED`(릴리스 JSON 파일 경로나 주소), `MOGO_NO_UPDATE_CHECK=1`(확인 안 함),
+  `MOGO_UPDATE_ALLOW_UNNOTARIZED=1`(공증 확인만 건너뜀, 서명·팀 확인은 그대로), 실행 인자 `--update-now`(확인 창 없이 바로 설치).
+- 검증 기록(2026-11-19): 공증한 0.2.0 → 0.2.1 업데이트(팀 확인, 다시 열기, 남은 파일 없음), 임시 서명 앱과 공증 안 된 앱 거부를 확인했습니다.
 
 ## 명령줄 도구
 

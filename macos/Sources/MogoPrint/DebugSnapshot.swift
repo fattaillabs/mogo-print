@@ -199,6 +199,25 @@ enum DebugSnapshot {
             await pause(0.5)
         }
 
+        // 업데이트 창(가짜 새 버전, 받지 않는다).
+        if values("--snapshot-update").first == "1" {
+            let updater = AppUpdater.shared
+            updater.available = UpdateCheck.Release(
+                version: "9.9.9", notes: "## 바뀐 점\n- 예시 릴리스 설명입니다. 실제 업데이트 창에는 GitHub 릴리스 설명이 나옵니다.",
+                page: UpdateCheck.releasesPage, assets: [UpdateCheck.macAssetName: UpdateCheck.releasesPage])
+            updater.phase = .available
+            updater.showSheet = true
+            if await wait(3, { mainWindow?.attachedSheet != nil }) {
+                await pause(0.7)
+                capture(mainWindow?.attachedSheet, to: dir.appendingPathComponent("update.png"))
+                report["update_sheet"] = true
+            }
+            updater.showSheet = false
+            updater.available = nil
+            updater.phase = .idle
+            await pause(0.5)
+        }
+
         // 교육청 학평(EBSi) 탭. 로그인 전이면 로그인 안내, 로그인했으면 가장 최근 학평 목록.
         if let mode = values("--snapshot-ebsi").first, mode == "1" || mode == "demo" {
             if mode == "demo" { EBSiDownloadPane.demo = Self.ebsiDemo }
