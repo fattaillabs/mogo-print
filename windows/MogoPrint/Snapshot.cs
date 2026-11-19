@@ -147,6 +147,23 @@ public static class Snapshot
                 confirm.Close();
             }
 
+            if (args.Contains("--snapshot-update"))
+            {
+                // 업데이트 창(가짜 새 버전, 받지 않는다)
+                var u = AppUpdater.Shared;
+                u.ShowForSnapshot(new UpdateCheck.Release("9.9.9", "## 바뀐 점\n- 예시 릴리스 설명입니다. 실제 업데이트 창에는 GitHub 릴리스 설명이 나옵니다.",
+                    UpdateCheck.ReleasesPage, new Dictionary<string, UpdateCheck.Asset> { [UpdateCheck.WindowsAssetName] = new(UpdateCheck.WindowsAssetName, "x", 0, null) }));
+                win.ShowUpdateWindow();
+                await Idle();
+                if (win.UpdateDialog is { } d)
+                {
+                    Save(d, "update.png");
+                    report["update_notice"] = (win.UpdateNoticeStatus.Content as TextBlock)?.Text;
+                    d.Close();
+                }
+                u.ShowForSnapshot(null);
+            }
+
             if (o.Kice)
             {
                 var kice = new KiceWindow(model) { Owner = win };
@@ -156,6 +173,31 @@ public static class Snapshot
                 Save(kice, "kice.png");
                 report["kice"] = new Dictionary<string, object?> { ["loaded"] = kice.Loaded2, ["areas"] = kice.Rows.Select(r => r.Area).ToList() };
                 kice.Close();
+            }
+            // 교육청 학평(EBSi) 탭. demo면 EBSi에 접속하지 않고 예시 목록(2026년 10월 고3 학평(서울)의 과목 구성)으로.
+            if (Value(args, "--snapshot-ebsi") is { } ebsiMode && (ebsiMode == "1" || ebsiMode == "demo"))
+            {
+                if (ebsiMode == "demo") EbsiPane.Demo = EbsiDemo();
+                KiceWindow.StartWithEbsi = true;
+                var k = new KiceWindow(model) { Owner = win };
+                k.Show();
+                await WaitFor(() => k.Ebsi?.Ready == true, 30000);
+                await Idle();
+                Save(k, "ebsi.png");
+                report["ebsi"] = new Dictionary<string, object?> { ["ready"] = k.Ebsi?.Ready };
+                k.Close();
+                KiceWindow.StartWithEbsi = false;
+                EbsiPane.Demo = null;
+            }
+            // EBSi 로그인 창(WebView2)이 열려 로그인 페이지를 불러오는지(로그인은 하지 않는다)
+            if (args.Contains("--snapshot-ebsi-login"))
+            {
+                var w = new EbsiLoginWindow { Owner = win, Quiet = true };
+                w.Show();
+                await WaitFor(() => w.LoadedUrl != null || w.StartError != null, 30000);
+                await Idle();
+                report["ebsi_login"] = new Dictionary<string, object?> { ["url"] = w.LoadedUrl, ["title"] = w.LoadedTitle, ["error"] = w.StartError };
+                w.Close();
             }
             report["errors"] = win.SnapshotErrors;
             report["ok"] = true;
@@ -167,6 +209,32 @@ public static class Snapshot
         }
         WriteReport();
         app.Shutdown(report.TryGetValue("ok", out var ok) && ok is true ? 0 : 1);
+    }
+
+    private static string? Value(string[] args, string name)
+    {
+        int i = Array.IndexOf(args, name);
+        return i >= 0 && i + 1 < args.Length ? args[i + 1] : null;
+    }
+
+    /// <summary>예시 목록: 2026년 10월 고3 학평(서울)의 과목 구성대로 제목만(파일 주소는 가짜, 받지 않는다).</summary>
+    private static (string Page, string Rows) EbsiDemo()
+    {
+        var page = "<script>var loginTF = 'true';</script>"
+            + string.Concat(new[] { 2026, 2025, 2024 }.Select(y => $"<input type=\"checkbox\" name=\"year\" value=\"{y}\">"))
+            + "<input name=\"korArOrd\" value=\"1\"><input name=\"sFormPartKor\" value=\"1\">";
+        (string Area, string Subject)[] subjects =
+        [
+            ("국어", "화법과 작문"), ("국어", "언어와 매체"), ("수학", "확률과 통계"), ("수학", "미적분"), ("수학", "기하"),
+            ("영어", "영어"), ("한국사", "한국사"),
+            ("사탐", "생활과 윤리"), ("사탐", "윤리와 사상"), ("사탐", "한국지리"), ("사탐", "세계지리"), ("사탐", "동아시아사"),
+            ("사탐", "세계사"), ("사탐", "정치와 법"), ("사탐", "경제"), ("사탐", "사회·문화"),
+            ("과탐", "물리학Ⅰ"), ("과탐", "화학Ⅰ"), ("과탐", "생명과학Ⅰ"), ("과탐", "지구과학Ⅰ"),
+        ];
+        var rows = string.Concat(subjects.Select((s, i) =>
+            $"<div class=\"qus_box\"><div class=\"qus_inner left\">2026 10월 {s.Area} 고3 10월 학평(서울) {s.Subject} 자료다운"
+            + $"<a onclick=\"goDownLoadP('/demo/{i}.pdf', '', '', '', '', '', '0');\">문제</a></div></div>"));
+        return (page, rows);
     }
 
     public static void Fail(Exception ex)

@@ -40,6 +40,8 @@ public partial class MainWindow : Window
         model.PropertyChanged += Model_PropertyChanged;
         model.Files.CollectionChanged += (_, _) => { BuildSettings(); UpdateChrome(); };
         model.OutputChanged += RefreshPreview;
+        AppUpdater.Shared.PropertyChanged += (_, _) => Dispatcher.BeginInvoke(RefreshUpdateNotice);
+        AppUpdater.Shared.DialogRequested += () => Dispatcher.BeginInvoke(ShowUpdateWindow);
 
         DragEnter += Window_DragOver;
         DragOver += Window_DragOver;
@@ -111,6 +113,7 @@ public partial class MainWindow : Window
         PrintButtonText.Text = Model.IsPrinting ? "보내는 중…" : "인쇄…";
         PrintingBar.Visibility = Model.IsPrinting ? Visibility.Visible : Visibility.Collapsed;
         StatusRow.Visibility = Model.Status != null ? Visibility.Visible : Visibility.Collapsed;
+        RefreshUpdateNotice();
         StatusText.Text = Model.Status ?? "";
         UpdatePageIndicator();
     }
@@ -358,6 +361,40 @@ public partial class MainWindow : Window
     {
         if ((sender as FrameworkElement)?.DataContext is FileItem item) Model.Remove(item);
     }
+
+    // MARK: 업데이트
+
+    public UpdateWindow? UpdateDialog { get; private set; }
+
+    /// <summary>새 버전이 있을 때 첫 화면과 아래 상태 줄에 보이는 한 줄.</summary>
+    private void RefreshUpdateNotice()
+    {
+        var u = AppUpdater.Shared;
+        bool show = u.Available != null && (u.State == AppUpdater.Phase.Available || u.IsBusy);
+        UpdateNoticeDrop.Content = show ? MakeNotice(u.Available!.Version) : null;
+        UpdateNoticeStatus.Content = show && Model.Status == null ? MakeNotice(u.Available!.Version) : null;
+    }
+
+    private FrameworkElement MakeNotice(string version)
+    {
+        var t = new TextBlock { VerticalAlignment = VerticalAlignment.Center, FontSize = 13 };
+        t.Inlines.Add(new System.Windows.Documents.Run("\uE896 ") { FontFamily = (FontFamily)FindResource("IconFont"), Foreground = Theme.Accent });
+        t.Inlines.Add(new System.Windows.Documents.Run($"새 버전 {version}이 나왔어요  "));
+        var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run("업데이트…"));
+        link.Click += (_, _) => ShowUpdateWindow();
+        t.Inlines.Add(link);
+        return t;
+    }
+
+    public void ShowUpdateWindow()
+    {
+        if (UpdateDialog is { IsLoaded: true }) { UpdateDialog.Activate(); return; }
+        UpdateDialog = new UpdateWindow(AppUpdater.Shared) { Owner = this };
+        UpdateDialog.Closed += (_, _) => UpdateDialog = null;
+        if (Model.SnapshotMode) UpdateDialog.Show(); else UpdateDialog.ShowDialog();
+    }
+
+    private async void CheckUpdate_Click(object sender, RoutedEventArgs e) => await AppUpdater.Shared.CheckAsync(manual: true);
 
     // MARK: 버튼
 

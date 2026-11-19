@@ -84,7 +84,7 @@ while (argList.Count > 0)
     switch (a)
     {
         case "-h": case "--help": Console.WriteLine(Usage); return 0;
-        case "-v": case "--version": Console.WriteLine("mogo-cli 0.1.0 (Windows)"); return 0;
+        case "-v": case "--version": Console.WriteLine($"mogo-cli {(System.Reflection.Assembly.GetEntryAssembly()?.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false).FirstOrDefault() as System.Reflection.AssemblyInformationalVersionAttribute)?.InformationalVersion.Split('+')[0] ?? "?"} (Windows)"); return 0;
         case "-o": case "--output": output = Value(a); break;
         case "-p": case "--print": doPrint = true; break;
         case "--dry-run": dryRun = true; break;

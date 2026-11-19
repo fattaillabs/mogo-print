@@ -137,18 +137,61 @@ public sealed class KiceWindow : DialogBase
         public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
     }
 
-    public KiceWindow(AppModel model) : base("평가원 기출 받기", 560)
+    /// <summary>받을 곳(평가원 / 교육청 학평). 자동 점검에서 정할 수 있게 둔다.</summary>
+    public static bool StartWithEbsi { get; set; }
+    private readonly ContentControl sourceHost = new();
+    private EbsiPane? ebsiPane;
+    public EbsiPane? Ebsi => ebsiPane;
+    private bool kiceLoaded;
+
+    public KiceWindow(AppModel model) : base("기출 받기", 580)
     {
         this.model = model;
         downloadButton = Accent("받기");
         downloadButton.Click += async (_, _) => await DownloadAsync();
         ShowChoose();
+
+        // [기출 받기]  ……  [평가원 (수능·모평) | 교육청 학평 (EBSi)]
+        var header = new DockPanel { Margin = new Thickness(0, 0, 0, 14) };
+        var seg = new StackPanel { Orientation = Orientation.Horizontal };
+        RadioButton Source(string text, bool ebsi)
+        {
+            var rb = new RadioButton { Content = text, GroupName = "source", IsChecked = ebsi == StartWithEbsi };
+            rb.SetResourceReference(StyleProperty, "Segment");
+            rb.Checked += (_, _) => ShowSource(ebsi);
+            return rb;
+        }
+        seg.Children.Add(Source("평가원 (수능·모평)", false));
+        seg.Children.Add(Source("교육청 학평 (EBSi)", true));
+        var segBox = new Border { Child = seg };
+        segBox.SetResourceReference(StyleProperty, "SegmentBox");
+        DockPanel.SetDock(segBox, Dock.Right);
+        header.Children.Add(segBox);
+        var title = Heading("기출 받기");
+        title.Margin = new Thickness(0);
+        header.Children.Add(title);
+
         Content = Surface(new StackPanel
         {
             Margin = new Thickness(22, 18, 22, 18),
-            Children = { Heading("평가원 기출 받기"), body },
+            Children = { header, sourceHost },
         });
-        Loaded += async (_, _) => await LoadYearsAsync();
+        ShowSource(StartWithEbsi);
+    }
+
+    private async void ShowSource(bool ebsi)
+    {
+        if (ebsi)
+        {
+            ebsiPane ??= new EbsiPane(model, ok => DialogResult = ok ? true : null, () => Close());
+            sourceHost.Content = ebsiPane;
+            await ebsiPane.StartAsync();
+        }
+        else
+        {
+            sourceHost.Content = body;
+            if (!kiceLoaded) { kiceLoaded = true; await LoadYearsAsync(); }
+        }
     }
 
     // MARK: 1단계
@@ -405,5 +448,101 @@ public sealed class KiceWindow : DialogBase
         panel.Children.Add(bottom);
         body.Content = panel;
         Update();
+    }
+}
+
+/// <summary>업데이트 창: 새 버전 안내와 바뀐 내용, 받는 중·설치 중 표시, 최신 버전·실패 안내.</summary>
+public sealed class UpdateWindow : DialogBase
+{
+    private readonly AppUpdater updater;
+    private readonly ContentControl body = new();
+
+    public UpdateWindow(AppUpdater updater) : base("업데이트", 500)
+    {
+        this.updater = updater;
+        Content = Surface(new StackPanel { Margin = new Thickness(24, 20, 24, 20), Children = { body } });
+        updater.PropertyChanged += Updater_PropertyChanged;
+        Closed += (_, _) => updater.PropertyChanged -= Updater_PropertyChanged;
+        Render();
+    }
+
+    private void Updater_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) =>
+        Dispatcher.BeginInvoke(Render);
+
+    private void Render()
+    {
+        var p = new StackPanel();
+        Button CloseButton(string text)
+        {
+            var b = Plain(text, cancel: true);
+            b.Click += (_, _) => Close();
+            return b;
+        }
+        StackPanel Buttons(params UIElement[] items)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 18, 0, 0) };
+            foreach (var i in items) row.Children.Add(i);
+            return row;
+        }
+        switch (updater.State)
+        {
+            case AppUpdater.Phase.Checking:
+                p.Children.Add(Heading("업데이트를 확인하는 중…"));
+                p.Children.Add(new ProgressBar { IsIndeterminate = true, Height = 4 });
+                break;
+            case AppUpdater.Phase.UpToDate:
+                p.Children.Add(Heading("최신 버전을 쓰고 있어요"));
+                p.Children.Add(new TextBlock { Text = $"모고 프린트 {AppUpdater.CurrentVersion}", Foreground = Theme.Secondary });
+                var ok = Accent("확인");
+                ok.Click += (_, _) => Close();
+                p.Children.Add(Buttons(ok));
+                break;
+            case AppUpdater.Phase.Failed:
+                p.Children.Add(Heading("업데이트하지 못했어요"));
+                p.Children.Add(new TextBlock { Text = updater.Error ?? "", Foreground = Theme.Secondary, TextWrapping = TextWrapping.Wrap });
+                var page = Plain("릴리스 페이지 열기");
+                page.Click += (_, _) => AppUpdater.OpenPage(updater.Available?.Page);
+                p.Children.Add(Buttons(page, CloseButton("닫기")));
+                break;
+            default:
+                if (updater.Available is not { } r) { p.Children.Add(Heading("업데이트")); p.Children.Add(Buttons(CloseButton("닫기"))); break; }
+                p.Children.Add(Heading("새 버전이 나왔어요"));
+                p.Children.Add(new TextBlock { Text = $"모고 프린트 {r.Version} · 지금 쓰는 버전은 {AppUpdater.CurrentVersion}이에요.", Foreground = Theme.Secondary, Margin = new Thickness(0, 0, 0, 10) });
+                var notes = new TextBox
+                {
+                    Text = AppUpdater.PlainNotes(r.Notes), IsReadOnly = true, TextWrapping = TextWrapping.Wrap, Height = 220,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto, FontSize = 13,
+                };
+                p.Children.Add(notes);
+                bool busy = updater.IsBusy;
+                if (updater.State == AppUpdater.Phase.Downloading)
+                {
+                    p.Children.Add(new TextBlock { Text = "받는 중…", Margin = new Thickness(0, 12, 0, 4), FontSize = 13 });
+                    p.Children.Add(new ProgressBar { Value = updater.Progress * 100, Height = 4 });
+                }
+                else if (updater.State == AppUpdater.Phase.Installing)
+                {
+                    p.Children.Add(new TextBlock { Text = "설치하는 중이에요. 잠시 뒤 프로그램이 다시 열려요.", Margin = new Thickness(0, 12, 0, 4), FontSize = 13 });
+                    p.Children.Add(new ProgressBar { IsIndeterminate = true, Height = 4 });
+                }
+                var skip = Plain("이 버전 건너뛰기");
+                skip.Margin = new Thickness(0);
+                skip.Click += (_, _) => { updater.Skip(); Close(); };
+                var later = CloseButton("나중에");
+                var go = Accent("업데이트");
+                go.Click += async (_, _) => await updater.InstallAsync();
+                skip.IsEnabled = later.IsEnabled = go.IsEnabled = !busy;
+                var row = new DockPanel { Margin = new Thickness(0, 18, 0, 0), LastChildFill = false };
+                DockPanel.SetDock(skip, Dock.Left);
+                row.Children.Add(skip);
+                var right = new StackPanel { Orientation = Orientation.Horizontal };
+                right.Children.Add(later);
+                right.Children.Add(go);
+                DockPanel.SetDock(right, Dock.Right);
+                row.Children.Add(right);
+                p.Children.Add(row);
+                break;
+        }
+        body.Content = p;
     }
 }

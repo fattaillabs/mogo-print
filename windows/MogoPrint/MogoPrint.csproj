@@ -12,13 +12,17 @@
     <AssemblyTitle>모고 프린트</AssemblyTitle>
     <Company>Fattail Labs</Company>
     <Copyright>MIT License</Copyright>
-    <Version>0.1.0</Version>
+    <Version>0.3.0</Version>
     <!-- Application.ThemeMode(Fluent 테마)는 아직 실험 API로 표시된다 -->
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Mogo.Core\Mogo.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 앱 안 EBSi 로그인 창(Edge 웹 화면). Windows 10·11에는 런타임이 기본으로 깔려 있다. -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4129.50" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="icon256.png" />

@@ -11,13 +11,14 @@ Windows 10·11 64비트에서 동작하며, 화면은 Windows 11 기본 모양(F
 dotnet build MogoPrint.slnx -c Release
 dotnet run --project MogoPrint                    # 앱 실행
 dotnet test Mogo.Core.Tests                       # 테스트
-powershell -File publish.ps1 -Version 0.1.0       # 배포용 단일 exe와 zip (artifacts\)
+powershell -File publish.ps1 -Version 0.3.0       # 배포용 단일 exe와 zip (artifacts\)
 ```
 
 `publish.ps1`은 .NET과 PDFium을 exe 안에 넣은 단일 실행 파일을 만들고 zip으로 묶습니다(64비트, exe 약 66MB).
 zip 안에는 exe 하나만 들어 있어 받는 사람은 압축을 풀고 바로 실행합니다.
 `artifacts\MogoPrint-windows-x64.zip`과 `artifacts\mogo-cli-windows-x64.zip`을 GitHub Releases에 올리면
 최상위 README의 고정 링크(`releases/latest/download/…`)가 그 파일을 가리킵니다. 파일 이름은 바꾸지 않습니다.
+자동 업데이트도 이 이름으로 파일을 찾고, 받은 exe의 제품 버전이 릴리스 태그(`v0.3.0`)와 같은지 확인하므로 `-Version`은 태그와 맞춥니다.
 
 ## 구조
 
@@ -27,13 +28,17 @@ Mogo.Core/          자르기·배치·인쇄 로직 (UI 없음)
   SourceFile.cs     PDF 불러오기, 홀·짝 형·선택과목 감지, 쪽별 내용 영역 감지(50dpi 렌더링)
   Imposer.cs        자를 범위와 배율, 수동 조정, 빈 쪽, A4에 벡터로 놓기, 여백 조정 점선 계산, 폴더 펼치기
   Kice.cs           평가원 기출문제 게시판 읽기·받기, ZIP 풀기(CP949 파일 이름)
+  Ebsi.cs           EBSi 기출문제에서 교육청 학력평가 받기(로그인 확인, 시험 달 찾기, 목록 읽기, 문제지·해설 저장)
+  UpdateCheck.cs    GitHub 최신 릴리스 확인, 버전 비교, 받은 zip 확인과 실행 중인 exe 바꾸기
   Printing.cs       인쇄(PDFium이 프린터 장치에 직접 그림), PrintTicket으로 흑백·양면 설정, 인쇄 불가 여백
   Models.cs         좌표·설정·결과 형식
 Mogo.Cli/           명령줄 도구 mogo-cli
 MogoPrint/          WPF 앱
   MainWindow        첫 화면, 파일 목록과 설정, 미리보기
   ManualCropView    여백 수동 조정(네 변 점선)
-  Dialogs           인쇄 확인 창, 평가원 받기 창
+  Dialogs           인쇄 확인 창, 기출 받기 창(평가원 탭), 업데이트 창
+  EbsiPane          기출 받기 창의 교육청 학평 탭, 앱 안 EBSi 로그인 창(WebView2)
+  AppUpdater        자동 업데이트(확인, 받기, 바꾸기, 다시 열기)
   Snapshot          개발용 자동 UI 점검
 Mogo.Core.Tests/    xUnit 테스트
 publish.ps1         배포용 빌드
@@ -59,7 +64,9 @@ publish.ps1         배포용 빌드
 - 저장소 최상위 `Samples/`에 실제 시험지 PDF가 있으면 실제 시험지 테스트와 기준값 비교(`GoldenTests`)도 실행됩니다.
   기준값은 맥 버전이 만든 [`../docs/expected/samples.json`](../docs/expected/samples.json)이고, 두 버전의 허용 오차는 여백 ±1.5mm, 배율 ±0.01입니다.
   2026년 11월 실측(시험지 23개)에서 최대 차이는 여백 1.40mm, 배율 0.0013이었습니다. 연한 회색 저작권 문구를 두 렌더러가 조금 다르게 그리기 때문입니다.
-- 평가원 홈페이지에 실제로 접속하는 테스트는 `$env:MOGO_NETWORK_TESTS="1"; dotnet test Mogo.Core.Tests --filter LiveDownload`로만 실행됩니다.
+- `EbsiTests`는 맥 버전과 같은 내용으로 EBSi 기출문제 페이지와 목록 읽기를 확인합니다. 구조만 흉내 낸 HTML을 쓰며, 로그인이 아니면 목록 요청을 보내지 않는지도 봅니다.
+- `UpdateCheckTests`는 버전 비교, 릴리스 JSON 읽기(초안·시험판 무시, SHA-256), 받은 zip 확인(해시·exe·버전이 틀리면 멈춤), exe 바꾸기와 되돌리기를 확인합니다.
+- 인터넷에 실제로 접속하는 테스트(평가원 받기, GitHub 최신 릴리스)는 `$env:MOGO_NETWORK_TESTS="1"; dotnet test Mogo.Core.Tests`로만 실행됩니다.
 
 ## 개발용 자동 UI 점검
 
@@ -74,12 +81,30 @@ Start-Process MogoPrint.exe -Wait -ArgumentList @(
 
 - 저장 파일: `empty.png`(첫 화면), `main.png`(파일을 넣은 뒤), `manual.png`(여백 조정), `manual-drag.png`(위 점선을 끈 뒤),
   `confirm.png`(인쇄 확인 창), `kice.png`(평가원 받기 창, 목록만 불러옴), `report.json`(쪽수, 배율, 설정 줄, 여백 값, 오류 등).
+- `--snapshot-update 1`: 가짜 새 버전(9.9.9)으로 업데이트 창을 `update.png`로 저장합니다(받지 않음).
+- `--snapshot-ebsi 1|demo`: 교육청 학평 탭을 `ebsi.png`로 저장합니다. `1`은 실제 로그인 상태대로, `demo`는 EBSi에 접속하지 않고 예시 목록으로.
+- `--snapshot-ebsi-login 1`: EBSi 로그인 창(WebView2)이 로그인 페이지를 불러오는지 `report.json`의 `ebsi_login`에 적습니다(로그인은 하지 않음).
+  WebView2는 별도 창 핸들에 그려져 PNG에는 담기지 않습니다.
 - 그 밖의 옵션: `--snapshot-size 1180x780`, `--snapshot-printer 이름`. PNG는 2배 해상도이고 제목 표시줄은 들어가지 않습니다.
 - 자동 점검 중에는 사용자가 저장해 둔 선택과목을 읽거나 쓰지 않고, 오류는 대화상자 대신 `report.json`에 적습니다.
 - 끌어다 놓기는 WPF가 `DragEventArgs`를 밖에서 만들 수 없게 해 두어서, 놓았을 때 부르는 `AddAsync`를 직접 부릅니다.
 - `MogoPrint.exe`는 창 프로그램이라 PowerShell에서 그냥 실행하면 끝나기를 기다리지 않습니다. `Start-Process -Wait`로 실행하고,
   띄어쓰기가 든 인자는 따옴표로 감쌉니다.
 - 화면이 없는 세션(SSH 등)은 화면 크기가 1024×768이라 창이 그 폭으로 줄어듭니다.
+
+## 자동 업데이트
+
+- 확인: 앱을 열 때 `api.github.com/repos/fattaillabs/mogo-print/releases/latest`를 읽어 태그 버전이 지금 exe의 제품 버전보다 높으면
+  첫 화면과 상태 줄에 알립니다. 초안과 시험판(prerelease)은 무시하고, 다른 정보는 보내지 않습니다.
+- 받기: 릴리스의 `MogoPrint-windows-x64.zip`을 임시 폴더에 받아 GitHub가 함께 알려 주는 SHA-256과 비교합니다.
+  zip 안의 `MogoPrint.exe`를 `MogoPrint.exe.new`로 꺼내 실행 파일 형식(MZ)과 제품 버전이 릴리스와 같은지 확인합니다.
+- 바꾸기: 실행 중인 exe는 지울 수 없지만 이름은 바꿀 수 있어서, 지금 exe를 `MogoPrint.exe.old`로 옮기고 새 exe를 제자리에 둔 뒤
+  새 exe를 실행하고 끝납니다. 새 exe가 시작하면 앞 프로그램이 닫히기를 기다려 `.old`를 지웁니다. 옮기기에 실패하면 원래 exe를 되돌립니다.
+- 코드 서명 인증서가 없어 exe 서명은 확인하지 못합니다. GitHub에서 HTTPS로 받은 파일을 GitHub가 알려 준 해시와 비교하는 것으로 확인합니다.
+- `dotnet run` 같은 개발 빌드나 쓸 수 없는 폴더에서 실행 중이면 바꾸지 않고 릴리스 페이지를 엽니다.
+- 시험용 설정: `MOGO_UPDATE_FEED`(릴리스 JSON 파일 경로나 주소), `MOGO_NO_UPDATE_CHECK=1`(확인 안 함), 실행 인자 `--update-now`(확인 창 없이 바로 설치).
+- 검증 기록(2026-11-20, Windows Server 2025): 배포용 exe 0.2.0 → 0.2.1, 0.2.1 → 0.2.2를 로컬 릴리스 JSON으로 업데이트해
+  2초 안에 새 exe로 바뀌고 다시 열리며, 앞 프로그램이 닫힌 뒤 `.old`가 지워지는 것을 확인했습니다.
 
 ## 인쇄 경로
 

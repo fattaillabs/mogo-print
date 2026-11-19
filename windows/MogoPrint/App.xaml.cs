@@ -9,9 +9,11 @@ public partial class App : Application
     {
         base.OnStartup(e);
         DispatcherUnhandledException += OnUnhandled;
+        AppUpdater.CleanupOld();
 
         if (e.Args.Contains("--snapshot-dir"))
         {
+            AppUpdater.Shared.SnapshotMode = true;
             await Snapshot.RunAsync(this, e.Args);
             return;
         }
@@ -23,6 +25,13 @@ public partial class App : Application
         // 탐색기에서 PDF를 프로그램 아이콘에 놓거나 '연결 프로그램'으로 열면 경로가 인자로 온다.
         var files = e.Args.Where(a => !a.StartsWith("--")).ToList();
         if (files.Count > 0) await model.AddAsync(files);
+        if (e.Args.Contains("--update-now"))
+        {
+            // 시험용: 확인 창 없이 바로 확인하고 새 버전이 있으면 설치한다.
+            await AppUpdater.Shared.CheckAsync(false);
+            if (AppUpdater.Shared.Available != null) await AppUpdater.Shared.InstallAsync();
+        }
+        else AppUpdater.Shared.CheckAutomatically();
     }
 
     private void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
