@@ -48,7 +48,9 @@ PDF를 창에 끌어다 놓으면 바깥 여백을 자동으로 잘라 A4에 맞
 - **지원 환경**: macOS 14 Sonoma 이상, Apple Silicon(M1 이후)과 Intel 맥 모두 지원합니다.
 - **보안**: 애플의 공증(notarization)을 받은 앱이라 "확인되지 않은 개발자" 경고 없이 열립니다.
 - **다운로드 폴더 접근**: `기출 받기`를 처음 쓸 때 "다운로드 폴더에 접근하려고 합니다"라는 창이 뜹니다. 받은 시험지를 저장하려면 `허용`을 누르세요.
-- **업데이트**: 새 버전 DMG를 받아 같은 방법으로 응용 프로그램 폴더에 덮어씁니다. 고른 선택과목 같은 설정은 그대로 남습니다.
+- **업데이트**: 앱을 열 때 새 버전이 있는지 확인해 첫 화면과 아래 상태 줄에 알려 줍니다. `업데이트…`를 누르면 새 버전을 받아 바꾸고 다시 엽니다.
+  앱 이름 메뉴의 `업데이트 확인…`으로 직접 확인할 수도 있습니다. 받은 앱이 같은 개발자가 서명하고 애플 공증을 받은 앱인지 확인한 뒤에만 바꾸며,
+  고른 선택과목 같은 설정은 그대로 남습니다. 0.2.0 이하 버전은 자동 업데이트가 없으니 새 DMG를 받아 응용 프로그램 폴더에 덮어씁니다.
 - **삭제**: 응용 프로그램 폴더의 `MogoPrint`를 휴지통으로 옮깁니다. 받은 시험지는 다운로드 폴더의 `모고 프린트` 폴더에 그대로 있습니다.
 
 ### Windows
@@ -62,7 +64,9 @@ PDF를 창에 끌어다 놓으면 바깥 여백을 자동으로 잘라 A4에 맞
    바로 가기 아이콘에 PDF를 끌어다 놓아도 열립니다.
 
 - **지원 환경**: Windows 10·11 64비트. .NET을 따로 설치하지 않아도 됩니다.
-- **업데이트**: 새 버전의 `MogoPrint.exe`로 바꿉니다. 고른 선택과목 같은 설정은 그대로 남습니다.
+- **업데이트**: 프로그램을 열 때 새 버전이 있는지 확인해 첫 화면과 아래 상태 줄에 알려 줍니다. `업데이트…`를 누르면 새 `MogoPrint.exe`를 받아
+  지금 파일과 바꾸고 다시 엽니다. 미리보기 위 도구 막대의 둥근 화살표 버튼으로 직접 확인할 수도 있습니다. 고른 선택과목 같은 설정은 그대로 남습니다.
+  0.2.0 이하 버전은 자동 업데이트가 없으니 새 `MogoPrint.exe`로 직접 바꿉니다.
 - **삭제**: `MogoPrint.exe`를 지웁니다. 설정은 `%APPDATA%\MogoPrint` 폴더에, 받은 시험지는 다운로드 폴더의 `모고 프린트` 폴더에 남습니다.
 
 지난 버전과 바뀐 내용은 [릴리스 페이지](https://github.com/fattaillabs/mogo-print/releases)에서 볼 수 있습니다.
@@ -97,7 +101,7 @@ dotnet run --project MogoPrint
 앱 창에 시험지 PDF를 끌어다 놓습니다. macOS는 Dock 아이콘에, Windows는 프로그램 아이콘이나 바로 가기에 놓아도 열립니다.
 여러 파일이나 폴더를 한 번에 넣을 수 있고, 폴더는 하위 폴더까지 읽습니다.
 `⌘O`(Windows `Ctrl+O`)로 파일을 골라도 됩니다. Windows의 파일 선택 창에서는 폴더를 고를 수 없으니 폴더는 창에 끌어다 놓습니다.
-기출문제는 `기출 받기…`(`⇧⌘O`)로 평가원과 EBSi에서 바로 받을 수도 있습니다(아래 참고). Windows에서는 `평가원에서 받기…`(`Ctrl+Shift+O`)입니다.
+기출문제는 `기출 받기…`(`⇧⌘O`, Windows `Ctrl+Shift+O`)로 평가원과 EBSi에서 바로 받을 수도 있습니다(아래 참고).
 
 <p align="center"><img src="docs/images/screenshot-drop.png" width="640" alt="처음 화면"></p>
 
@@ -149,7 +153,7 @@ Windows 버전은 고른 프린터가 양면 인쇄를 지원하지 않으면 �
    설정해 둔 선택과목의 파일만 체크됩니다. `해설지도 받기`를 켜면 해설도 함께 받습니다.
 4. `받기`를 누르면 다운로드 폴더의 `모고 프린트/2026년 10월 고3 학력평가(서울)` 같은 폴더에 저장하고 목록에 넣습니다.
 
-앱을 다시 열면 EBSi에 다시 로그인해야 할 수 있습니다. 교육청 학평 받기는 macOS 버전에서 쓸 수 있습니다.
+앱을 다시 열면 EBSi에 다시 로그인해야 할 수 있습니다.
 
 <p align="center"><img src="docs/images/screenshot-ebsi.png" width="440" alt="기출 받기 창의 교육청 학평 탭"></p>
 
@@ -260,7 +264,7 @@ macOS 버전과 Windows 버전은 같은 규칙을 따르며, 같은 시험지�
 The official exam PDFs are A3 with wide margins, so printing them on A4 as is shrinks the text to 71%.
 Drop the PDFs onto the app and it trims the empty margins, lays every page out on A4 at about 80% of the original size,
 shows a preview, and prints double-sided in grayscale. It can also download past exams directly from the KICE website,
-and on macOS the education offices' monthly mock exams (학력평가) from EBSi after you sign in to EBSi inside the app (the app never stores your EBSi password). It also picks one version out of PDFs that bundle both exam versions
+and the education offices' monthly mock exams (학력평가) from EBSi after you sign in to EBSi inside the app (the app never stores your EBSi password). It also picks one version out of PDFs that bundle both exam versions
 (홀수형/짝수형), prints only the elective you take in Korean and math (2022–2027 exams),
 and inserts blank pages so every subject starts on a new sheet. A command line tool, `mogo-cli`,
 does the same from the terminal.
@@ -268,6 +272,8 @@ does the same from the terminal.
 - macOS 14 or later (Apple Silicon and Intel), and Windows 10/11 (64-bit).
 - Install on macOS: download [MogoPrint.dmg](https://github.com/fattaillabs/mogo-print/releases/latest/download/MogoPrint.dmg) (signed and notarized), open it, and drag MogoPrint to Applications.
 - Install on Windows: download [MogoPrint-windows-x64.zip](https://github.com/fattaillabs/mogo-print/releases/latest/download/MogoPrint-windows-x64.zip), extract it, and run `MogoPrint.exe` (no installer, no .NET install needed). The app is not code-signed, so SmartScreen asks once: choose "More info", then "Run anyway".
+- Updates: from 0.3.0 the app checks GitHub Releases when it starts and can download and install a new version for you
+  (on macOS only if the new app is signed by the same developer and notarized). Older versions need one manual update.
 - Build from source: `cd macos && bash build_app.sh` on macOS, or `cd windows && dotnet run --project MogoPrint` with the .NET 10 SDK on Windows.
 - Try it with the sample PDFs in `docs/demo` (made for this project, not real exams).
 - Real exam PDFs are not included because they are copyrighted by KICE. This project is not affiliated with KICE.
