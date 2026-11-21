@@ -200,7 +200,7 @@ struct FileRow: View {
                     .truncationMode(.middle)
                 HStack(spacing: 6) {
                     if let s = section {
-                        Text("\(s.pageIndices.count)쪽 · \(Int((s.scale * 100).rounded()))%")
+                        Text("\(s.pageIndices.count)쪽 · \(Int((s.textScale * 100).rounded()))%")
                     } else {
                         Text("\(file.pageCount)쪽")
                     }
@@ -261,7 +261,7 @@ struct PreviewPane: View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 if model.outputPageCount > 0 {
-                    Text("A4 \(model.outputPageCount)쪽 · 종이 \(model.sheetCount)장 · 원본 대비 글자 크기 \(model.displayScale)%")
+                    Text("A4 \(model.outputPageCount)쪽 · 종이 \(model.sheetCount)장 · 원본 대비 글자 크기 \(model.displayScale)")
                         .font(.callout)
                 }
                 if model.isWorking { ProgressView().controlSize(.small) }
@@ -342,6 +342,11 @@ struct ManualCropView: View {
     private var base: CGRect { Imposer.baseCrop(file: file, pageIndex: pageIndex, options: model.options) }
     private var committed: CGRect { Imposer.crop(file: file, pageIndex: pageIndex, options: model.options) }
     private var current: CGRect { draft ?? committed }
+    /// 실제 시험지 대비 글자 크기(%). 바깥 화면의 파일 목록과 같은 값.
+    private var textPercent: Int {
+        let r = file.reduction(at: pageIndex)
+        return Int((Imposer.scale(for: current, options: model.options, reduction: r) * r * 100).rounded())
+    }
     private var adjust: CropAdjustment { model.options.adjustment(for: file.url) }
     private var hasEdgeAdjustment: Bool {
         adjust.top != 0 || adjust.bottom != 0 || adjust.left != 0 || adjust.right != 0
@@ -360,7 +365,7 @@ struct ManualCropView: View {
                 Button { position += 1 } label: { Image(systemName: "chevron.right") }
                     .disabled(position >= pages.count - 1)
                 Spacer()
-                Text("원본 대비 글자 크기 \(Int((Imposer.scale(for: current, options: model.options) * 100).rounded()))%")
+                Text("원본 대비 글자 크기 \(textPercent)%")
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                 Button("원래대로") { reset() }
@@ -709,7 +714,7 @@ struct PrintConfirmView: View {
             Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 8) {
                 row("프린터", s.printer.replacingOccurrences(of: "_", with: " "))
                 row("분량", "A4 \(model.outputPageCount)쪽 · 종이 \(model.sheetCount)장 × \(s.copies)부")
-                row("설정", "\(s.duplex ? "양면 (긴 쪽 넘김)" : "단면") · \(s.grayscale ? "흑백" : "컬러") · 원본 대비 글자 크기 \(model.displayScale)%")
+                row("설정", "\(s.duplex ? "양면 (긴 쪽 넘김)" : "단면") · \(s.grayscale ? "흑백" : "컬러") · 원본 대비 글자 크기 \(model.displayScale)")
                 if model.hasCombinedVariants {
                     row("시험지 형", model.options.variant.rawValue)
                 }

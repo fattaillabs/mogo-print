@@ -70,7 +70,7 @@ public sealed class PrintConfirmWindow : DialogBase
         }
         Row("프린터", m.Printer);
         Row("분량", $"A4 {m.OutputPageCount}쪽 · 종이 {m.SheetCount}장 × {m.Copies}부");
-        Row("설정", $"{(m.EffectiveDuplex ? "양면 (긴 쪽 넘김)" : "단면")} · {(m.Grayscale ? "흑백" : "컬러")} · 원본 대비 글자 크기 {m.DisplayScale}%");
+        Row("설정", $"{(m.EffectiveDuplex ? "양면 (긴 쪽 넘김)" : "단면")} · {(m.Grayscale ? "흑백" : "컬러")} · 원본 대비 글자 크기 {m.DisplayScale}");
         if (m.HasCombinedVariants) Row("시험지 형", m.Options.Variant.Korean());
         var electives = m.ElectiveRows;
         if (electives.Count > 0)

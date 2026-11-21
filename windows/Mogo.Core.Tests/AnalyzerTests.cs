@@ -21,6 +21,14 @@ public class AnalyzerTests
     }
 
     [Fact]
+    public void AnswerSheetText()
+    {
+        Assert.True(ExamAnalyzer.IsAnswerSheet("2026학년도 대학수학능력시험 국어영역 정 답 표"));
+        Assert.False(ExamAnalyzer.IsAnswerSheet("2025학년도 9월 전국연합학력평가 정답 및 해설"));
+        Assert.False(ExamAnalyzer.IsAnswerSheet("전국연합학력평가 문제지"));
+    }
+
+    [Fact]
     public void PropagateKeepsLeadingPagesUnlabeled()
     {
         ExamVariant?[] labels = [null, ExamVariant.Odd, null, null, ExamVariant.Even, null];

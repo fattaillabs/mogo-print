@@ -37,11 +37,46 @@ final class ImposerTests: XCTestCase {
         XCTAssertTrue(pages[0].crop.contains(CGRect(x: 100, y: 100, width: 600, height: 900)))
     }
 
-    func testNeverEnlargesBeyondOriginal() throws {
-        // 정답표처럼 원래 A4이고 내용이 작으면 100%로 둔다.
-        let f = try file([.init(size: TestPDF.a4, boxes: [CGRect(x: 100, y: 500, width: 300, height: 200)])])
-        let plan = Imposer.plan(files: [f], options: ImpositionOptions())
-        XCTAssertEqual(try XCTUnwrap(plan.first).scale, 1, accuracy: 0.0001)
+    func testA3IsNeverEnlargedBeyondOriginal() throws {
+        // A3 원본은 내용이 작아도 원본보다 키우지 않는다.
+        let f = try file([.init(size: TestPDF.a3, boxes: [CGRect(x: 300, y: 500, width: 200, height: 200)])])
+        let page = try XCTUnwrap(Imposer.plan(files: [f], options: ImpositionOptions()).first?.pages.first)
+        XCTAssertEqual(page.scale, 1, accuracy: 0.0001)
+        XCTAssertEqual(page.textScale, 1, accuracy: 0.0001)
+    }
+
+    func testA4ExamIsEnlargedToFillPage() throws {
+        // EBSi 일부 학평처럼 시험지를 A4로 줄여 담은 PDF는 여백을 잘라 종이를 채운다(원본 PDF보다 커짐).
+        // 글자 크기는 실제 시험지(A3) 기준으로 잰다: A4 원본 115%면 시험지 대비 약 81%.
+        let ink = CGRect(x: 21 * mm, y: 23 * mm, width: 167 * mm, height: 247 * mm)
+        let f = try file([.init(size: TestPDF.a4, boxes: [ink])])
+        XCTAssertEqual(f.reduction(at: 0), 297.0 / 420, accuracy: 0.001)
+        let page = try XCTUnwrap(Imposer.plan(files: [f], options: ImpositionOptions()).first?.pages.first)
+        XCTAssertGreaterThan(page.scale, 1.1)
+        XCTAssertEqual(page.textScale, page.scale * 297 / 420, accuracy: 0.001)
+        XCTAssertEqual(Imposer.scale(for: page.crop, options: ImpositionOptions(), reduction: f.reduction(at: 0)), page.scale, accuracy: 1e-9)
+
+        // 내용이 아주 작아도 실제 시험지 크기(A3)까지만 키운다.
+        let small = try file([.init(size: TestPDF.a4, boxes: [CGRect(x: 100, y: 500, width: 300, height: 200)])], name: "small")
+        let sp = try XCTUnwrap(Imposer.plan(files: [small], options: ImpositionOptions()).first?.pages.first)
+        XCTAssertEqual(sp.scale, 420 / 297.0, accuracy: 0.002)
+        XCTAssertEqual(sp.textScale, 1, accuracy: 0.002)
+
+        // 여백을 더 자르면 글자가 커진다(상한에 걸려 그대로이던 문제).
+        var o = ImpositionOptions()
+        o.adjustments[f.url] = CropAdjustment(top: 10, bottom: 10)
+        let adjusted = try XCTUnwrap(Imposer.plan(files: [f], options: o).first?.pages.first)
+        XCTAssertGreaterThan(adjusted.scale, page.scale + 0.02)
+    }
+
+    func testAnswerSheetIsNotEnlarged() throws {
+        // 정답표는 원래 A4 문서라 내용이 작아도 원본보다 키우지 않는다.
+        let f = try file([.init(size: TestPDF.a4, text: "국어영역 정답표",
+                                boxes: [CGRect(x: 100, y: 500, width: 300, height: 200)])])
+        XCTAssertEqual(f.reduction(at: 0), 1)
+        let page = try XCTUnwrap(Imposer.plan(files: [f], options: ImpositionOptions()).first?.pages.first)
+        XCTAssertEqual(page.scale, 1, accuracy: 0.0001)
+        XCTAssertEqual(page.textScale, 1, accuracy: 0.0001)
     }
 
     func testMixedPageSizesGetTheirOwnCrop() throws {

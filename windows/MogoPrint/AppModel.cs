@@ -277,8 +277,17 @@ public sealed class AppModel : Observable
 
     public bool HasCombinedVariants => Files.Any(f => f.File.HasBothVariants);
     public int SheetCount => EffectiveDuplex ? (OutputPageCount + 1) / 2 : OutputPageCount;
-    /// <summary>화면에 보여 줄 대표 배율(가장 작은 값, %).</summary>
-    public int DisplayScale => Sections.Count == 0 ? 0 : (int)Math.Round(Sections.Min(s => s.Scale) * 100);
+    /// <summary>실제 시험지 대비 글자 크기. 파일마다 다르면 범위로("80~82%"). 여백 조정 화면은 그 파일 값만 보여 준다.</summary>
+    public string DisplayScale
+    {
+        get
+        {
+            var values = Sections.SelectMany(s => s.Pages).Select(p => (int)Math.Round(p.TextScale * 100)).ToList();
+            if (values.Count == 0) return "0%";
+            int lo = values.Min(), hi = values.Max();
+            return lo == hi ? $"{lo}%" : $"{lo}~{hi}%";
+        }
+    }
     public bool MarginTooSmall => HardwareMarginMM is { } hw && Options.PaperMarginMM + 0.05 < hw;
 
     /// <summary>결과 쪽 번호(0부터)가 어느 파일의 몇 번째 쪽인지. 빈 쪽이면 null.</summary>
@@ -352,7 +361,7 @@ public sealed class AppModel : Observable
         foreach (var f in Files)
         {
             var s = Sections.FirstOrDefault(x => x.File == f.File);
-            f.Detail = s != null ? $"{s.PageIndices.Count}쪽 · {Math.Round(s.Scale * 100)}%" : $"{f.File.PageCount}쪽";
+            f.Detail = s != null ? $"{s.PageIndices.Count}쪽 · {Math.Round(s.TextScale * 100)}%" : $"{f.File.PageCount}쪽";
             f.PadsBlank = s?.PadsBlankPage == true;
             f.ElectiveText = f.File.ElectiveSubject is { } sub && options.Electives.TryGetValue(sub, out var e) ? e.ShortName() : null;
             f.Adjusted = !options.Adjustment(f.File.Path).IsDefault;

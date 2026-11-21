@@ -123,6 +123,10 @@ build/MogoPrint.app/Contents/MacOS/MogoPrint --snapshot-dir /tmp/snap \
 - 인쇄 대기열: 같은 옵션으로 `lp -H hold` 보류 작업을 보내 속성을 확인한 뒤 취소했습니다.
 - 실제 출력: 2026학년도 수능 국어 1·2쪽을 양면으로 인쇄해 방향과 잘림이 없는 것을 확인했습니다(2026-11-04).
 
+- CUPS 연결(2026-11-21, macOS 26.4): 내부 소켓(`/private/var/run/cupsd`)으로 붙으면 lp가 작업 전에 묻는 프린터 정보(약 15KB) 응답이
+  가끔 7KB쯤에서 끊겨 lp가 끝없이 기다렸습니다(20번 중 8번, CUPS를 다시 시작해도 같음). localhost:631(TCP)로는 한 번도 끊기지 않아,
+  lp·lpstat·lpoptions는 localhost:631에 붙을 수 있으면 `CUPS_SERVER=localhost`로 실행합니다. lp는 60초 안에 끝나지 않으면 멈추고 알립니다.
+
 ## 알려진 한계
 
 - 한컴오피스(HWP)로 만든 평가원 PDF는 글자 대응표(`Unidocs-HWP2002-UCS2`)를 Quartz가 새 PDF로 옮기지 못합니다.

@@ -168,8 +168,11 @@ final class AppModel: ObservableObject {
     }
 
     /// 화면에 보여줄 대표 배율(가장 작은 값).
-    var displayScale: Int {
-        Int(((sections.map(\.scale).min() ?? 0) * 100).rounded())
+    /// 실제 시험지 대비 글자 크기. 파일마다 다르면 범위로("80~82%"). 여백 조정 화면은 그 파일 값만 보여 준다.
+    var displayScale: String {
+        let values = sections.flatMap(\.pages).map { Int(($0.textScale * 100).rounded()) }
+        guard let lo = values.min(), let hi = values.max() else { return "0%" }
+        return lo == hi ? "\(lo)%" : "\(lo)~\(hi)%"
     }
 
     /// 종이 여백이 프린터가 찍을 수 있는 범위보다 좁은지.

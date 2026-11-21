@@ -104,7 +104,7 @@ public partial class MainWindow : Window
         LoadingRow.Visibility = Model.LoadingCount > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         SummaryText.Text = Model.OutputPageCount > 0
-            ? $"A4 {Model.OutputPageCount}쪽 · 종이 {Model.SheetCount}장 · 원본 대비 글자 크기 {Model.DisplayScale}%"
+            ? $"A4 {Model.OutputPageCount}쪽 · 종이 {Model.SheetCount}장 · 원본 대비 글자 크기 {Model.DisplayScale}"
             : "";
         WorkingBar.Visibility = Model.IsWorking ? Visibility.Visible : Visibility.Collapsed;
         CropButton.IsEnabled = Model.Sections.Count > 0;

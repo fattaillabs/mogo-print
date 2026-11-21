@@ -105,7 +105,7 @@ enum DebugSnapshot {
         report["sheets"] = model.sheetCount
         report["display_scale"] = model.displayScale
         report["sections"] = model.sections.map {
-            ["name": $0.file.name, "pages": $0.pageIndices.count, "scale": Double($0.scale), "blank": $0.padsBlankPage]
+            ["name": $0.file.name, "pages": $0.pageIndices.count, "scale": Double($0.scale), "text_scale": Double($0.textScale), "blank": $0.padsBlankPage]
         }
         report["hardware_margin_mm"] = model.hardwareMarginMM.map { Double($0) } ?? -1
         if let thumbs = findView(PDFThumbnailView.self, in: mainWindow?.contentView) {

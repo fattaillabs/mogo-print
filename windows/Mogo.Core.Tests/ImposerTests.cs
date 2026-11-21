@@ -33,11 +33,48 @@ public class ImposerTests
     }
 
     [Fact]
-    public void NeverEnlargesBeyondOriginal()
+    public void A3IsNeverEnlargedBeyondOriginal()
     {
-        // 정답표처럼 원래 A4이고 내용이 작으면 100%로 둔다.
-        using var f = Load([new(A4, Boxes: [Box(100, 500, 300, 200)])]);
-        Assert.Equal(1, Imposer.Plan([f], new ImpositionOptions())[0].Scale, 4);
+        // A3 원본은 내용이 작아도 원본보다 키우지 않는다.
+        using var f = Load([new(A3, Boxes: [Box(300, 500, 200, 200)])]);
+        var page = Imposer.Plan([f], new ImpositionOptions())[0].Pages[0];
+        Assert.Equal(1, page.Scale, 4);
+        Assert.Equal(1, page.TextScale, 4);
+    }
+
+    [Fact]
+    public void A4ExamIsEnlargedToFillPage()
+    {
+        // EBSi 일부 학평처럼 시험지를 A4로 줄여 담은 PDF는 여백을 잘라 종이를 채운다(원본 PDF보다 커짐).
+        // 글자 크기는 실제 시험지(A3) 기준으로 잰다: A4 원본 115%면 시험지 대비 약 81%.
+        using var f = Load([new(A4, Boxes: [Box(21 * MM, 23 * MM, 167 * MM, 247 * MM)])]);
+        Assert.Equal(297.0 / 420, f.Reduction(0), 3);
+        var page = Imposer.Plan([f], new ImpositionOptions())[0].Pages[0];
+        Assert.True(page.Scale > 1.1, $"{page.Scale}");
+        Assert.Equal(page.Scale * 297 / 420, page.TextScale, 3);
+        Assert.Equal(page.Scale, Imposer.Scale(page.Crop, new ImpositionOptions(), f.Reduction(0)), 9);
+
+        // 내용이 아주 작아도 실제 시험지 크기(A3)까지만 키운다.
+        using var small = Load([new(A4, Boxes: [Box(100, 500, 300, 200)])]);
+        var sp = Imposer.Plan([small], new ImpositionOptions())[0].Pages[0];
+        Assert.Equal(420 / 297.0, sp.Scale, 2);
+        Assert.Equal(1, sp.TextScale, 2);
+
+        // 여백을 더 자르면 글자가 커진다(상한에 걸려 그대로이던 문제).
+        var o = new ImpositionOptions().WithAdjustment(f.Path, new CropAdjustment(Top: 10, Bottom: 10));
+        var adjusted = Imposer.Plan([f], o)[0].Pages[0];
+        Assert.True(adjusted.Scale > page.Scale + 0.02, $"{adjusted.Scale} vs {page.Scale}");
+    }
+
+    [Fact]
+    public void AnswerSheetIsNotEnlarged()
+    {
+        // 정답표는 원래 A4 문서라 내용이 작아도 원본보다 키우지 않는다.
+        using var f = Load([new(A4, Text: "국어영역 정답표", Boxes: [Box(100, 500, 300, 200)])]);
+        Assert.Equal(1, f.Reduction(0));
+        var page = Imposer.Plan([f], new ImpositionOptions())[0].Pages[0];
+        Assert.Equal(1, page.Scale, 4);
+        Assert.Equal(1, page.TextScale, 4);
     }
 
     [Fact]

@@ -213,6 +213,7 @@ if json {
                 "crop_margin_mm": ["left": dec(mm(crop.minX)), "top": dec(mm(size.height - crop.maxY)),
                                    "right": dec(mm(size.width - crop.maxX)), "bottom": dec(mm(crop.minY))],
                 "scale": dec(Double(s.scale), 4),
+                "text_scale": dec(Double(s.textScale), 4),
                 "blank_page_after": s.padsBlankPage,
             ]
         },
@@ -228,7 +229,7 @@ if json {
             tags.append("선택과목→" + (options.electives[subject]?.shortName ?? "전체(\(s.file.electives.map(\.shortName).joined(separator: "·")))"))
         }
         if s.padsBlankPage { tags.append("+빈 쪽") }
-        print("\(s.file.name): \(s.file.pageCount)쪽 → \(s.pageIndices.count)쪽, \(Int((s.scale * 100).rounded()))%"
+        print("\(s.file.name): \(s.file.pageCount)쪽 → \(s.pageIndices.count)쪽, \(Int((s.textScale * 100).rounded()))%"
               + "  (자른 여백 왼\(Int(mm(crop.minX))) 위\(Int(mm(size.height - crop.maxY)))"
               + " 오\(Int(mm(size.width - crop.maxX))) 아래\(Int(mm(crop.minY)))mm)"
               + (tags.isEmpty ? "" : "  " + tags.joined(separator: ", ")))
@@ -254,7 +255,7 @@ if doPrint {
     }
     if dryRun {
         let lpArgs = Printing.arguments(file: file, settings: settings, title: title)
-        print("보낼 명령: lp " + lpArgs.map { $0.contains(" ") ? "'\($0)'" : $0 }.joined(separator: " "))
+        print("보낼 명령: " + (Printing.cupsServer.map { "CUPS_SERVER=\($0) " } ?? "") + "lp " + lpArgs.map { $0.contains(" ") ? "'\($0)'" : $0 }.joined(separator: " "))
         exit(0)
     }
     if outURL == nil {

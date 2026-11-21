@@ -34,6 +34,8 @@ public static class Units
 {
     public const double PointsPerMM = 72.0 / 25.4;
     public static readonly SizeD A4 = new(595.28, 841.89);
+    /// <summary>실제 시험지(A3)의 긴 변(mm). A4 등으로 줄여 담은 PDF의 글자 크기를 이 크기 기준으로 잰다.</summary>
+    public const double ExamPaperLongSideMM = 420;
 }
 
 /// <summary>쪽 기하: cropBox와 회전(0~3, 90도 단위 시계 방향). 화면 방향(회전 반영) 좌표계로 바꾸는 변환을 준다.</summary>
@@ -142,7 +144,8 @@ public sealed record ImpositionOptions
     public bool PadSectionsToEven { get; init; } = true;
     /// <summary>마지막 파일 뒤에도 빈 쪽을 넣을지(양면으로 여러 부).</summary>
     public bool PadEndToEven { get; init; }
-    /// <summary>원본보다 크게 키우지 않는다.</summary>
+    /// <summary>실제 시험지보다 크게 키우지 않는다(실제 시험지 대비 배율의 상한). A3 원본은 원본 크기,
+    /// A4로 줄여 담은 시험지는 A3 크기까지 키울 수 있고, 정답표는 원본보다 키우지 않는다(SourceFile.Reduction).</summary>
     public double MaxScale { get; init; } = 1;
     /// <summary>파일별 손 조정(전체 경로 기준).</summary>
     public IReadOnlyDictionary<string, CropAdjustment> Adjustments { get; init; } = new Dictionary<string, CropAdjustment>(StringComparer.OrdinalIgnoreCase);
@@ -171,13 +174,21 @@ public sealed record ImpositionOptions
 }
 
 /// <summary>A4 한 쪽에 놓일 원본 쪽.</summary>
-public sealed record PlacedPage(int Index, RectD Crop, double Scale, PageGeometry Geometry);
+/// <param name="Scale">원본(PDF 쪽) 대비 배율</param>
+/// <param name="Reduction">원본 PDF가 실제 시험지를 얼마로 줄여 담았는지(SourceFile.Reduction)</param>
+public sealed record PlacedPage(int Index, RectD Crop, double Scale, PageGeometry Geometry, double Reduction = 1)
+{
+    /// <summary>실제 시험지 대비 글자 크기. 화면에 보이는 %.</summary>
+    public double TextScale => Scale * Reduction;
+}
 
 /// <summary>한 파일에서 뽑은 쪽 묶음.</summary>
 public sealed record ExamSection(SourceFile File, IReadOnlyList<PlacedPage> Pages, bool PadsBlankPage)
 {
     public IReadOnlyList<int> PageIndices => Pages.Select(p => p.Index).ToList();
     public double Scale => Pages.Count == 0 ? 1 : Pages.Min(p => p.Scale);
+    /// <summary>대표 글자 크기(실제 시험지 대비, 가장 작은 값).</summary>
+    public double TextScale => Pages.Count == 0 ? 1 : Pages.Min(p => p.TextScale);
     public RectD Crop => Pages.Count == 0 ? default : Pages[0].Crop;
     public SizeD PageSize => Pages.Count == 0 ? default : Pages[0].Geometry.Size;
     public int OutputPageCount => Pages.Count + (PadsBlankPage ? 1 : 0);

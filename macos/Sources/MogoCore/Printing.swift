@@ -20,18 +20,79 @@ public enum PrintError: LocalizedError {
 
 /// macOS 기본 인쇄 시스템(CUPS)의 lp 명령으로 바로 인쇄한다.
 public enum Printing {
+    /// CUPS 명령(lp·lpstat·lpoptions)이 붙을 곳. macOS CUPS는 내부 소켓(/private/var/run/cupsd)과 localhost:631을
+    /// 둘 다 받는데, 내부 소켓은 큰 응답(lp가 작업 전에 묻는 프린터 정보 약 15KB)을 가끔 7KB쯤에서 끊어
+    /// lp가 나머지를 끝없이 기다린다(2026-11 macOS 26.4 실측: 20번 중 8번, TCP는 0번).
+    /// 그래서 localhost:631에 붙을 수 있으면 그쪽(TCP)을 쓴다. 사용자가 CUPS_SERVER를 정해 두었으면 그대로 둔다.
+    public static let cupsServer: String? = {
+        let env = ProcessInfo.processInfo.environment
+        if let s = env["CUPS_SERVER"], !s.isEmpty { return nil }
+        return canConnect(port: 631) ? "localhost" : nil
+    }()
+
+    /// 127.0.0.1의 포트에 1초 안에 붙을 수 있는지.
+    static func canConnect(port: UInt16) -> Bool {
+        let fd = socket(AF_INET, SOCK_STREAM, 0)
+        guard fd >= 0 else { return false }
+        defer { close(fd) }
+        _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = port.bigEndian
+        addr.sin_addr.s_addr = inet_addr("127.0.0.1")
+        let r = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { connect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) }
+        }
+        if r == 0 { return true }
+        guard errno == EINPROGRESS else { return false }
+        var pfd = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
+        guard poll(&pfd, 1, 1000) == 1 else { return false }
+        var err: Int32 = 0
+        var len = socklen_t(MemoryLayout<Int32>.size)
+        getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len)
+        return err == 0
+    }
+
+    private final class OutputBox: @unchecked Sendable { var data = Data() }
+
+    /// 명령을 실행하고 출력(표준 출력+오류)을 돌려준다. timeout초 안에 끝나지 않으면 멈추고 timedOut.
+    /// CUPS 명령은 cupsServer로 붙는다.
     @discardableResult
-    static func run(_ tool: String, _ args: [String]) -> (status: Int32, output: String) {
+    static func run(_ tool: String, _ args: [String], timeout: TimeInterval = 20) -> (status: Int32, output: String, timedOut: Bool) {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: tool)
         p.arguments = args
+        if let server = cupsServer, ["lp", "lpstat", "lpoptions"].contains((tool as NSString).lastPathComponent) {
+            var env = ProcessInfo.processInfo.environment
+            env["CUPS_SERVER"] = server
+            p.environment = env
+        }
         let pipe = Pipe()
         p.standardOutput = pipe
         p.standardError = pipe
-        do { try p.run() } catch { return (-1, error.localizedDescription) }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        p.waitUntilExit()
-        return (p.terminationStatus, String(decoding: data, as: UTF8.self))
+        p.standardInput = FileHandle.nullDevice
+        let exited = DispatchSemaphore(value: 0)
+        p.terminationHandler = { _ in exited.signal() }
+        do { try p.run() } catch { return (-1, error.localizedDescription, false) }
+        // 출력은 다른 스레드에서 끝까지 읽는다(기다리는 동안 파이프가 차서 멈추지 않게).
+        let box = OutputBox()
+        let readDone = DispatchSemaphore(value: 0)
+        let handle = pipe.fileHandleForReading
+        DispatchQueue.global().async {
+            box.data = handle.readDataToEndOfFile()
+            readDone.signal()
+        }
+        var timedOut = false
+        if exited.wait(timeout: .now() + timeout) == .timedOut {
+            timedOut = true
+            p.terminate()
+            if exited.wait(timeout: .now() + 2) == .timedOut {
+                kill(p.processIdentifier, SIGKILL)
+                exited.wait()
+            }
+        }
+        _ = readDone.wait(timeout: .now() + 2)
+        return (p.terminationStatus, String(decoding: box.data, as: UTF8.self), timedOut)
     }
 
     /// 등록된 프린터 목록과 기본 프린터.
@@ -96,9 +157,16 @@ public enum Printing {
         return output[r].components(separatedBy: " ").last
     }
 
+    /// lp가 이 시간 안에 끝나지 않으면 멈추고 알린다. 보통은 1초 안에 대기열로 들어간다.
+    public static let submitTimeout: TimeInterval = 60
+
     /// 인쇄를 보내고 작업 번호를 돌려준다.
-    public static func submit(file: URL, settings: PrintSettings, title: String) throws -> String {
-        let result = run("/usr/bin/lp", arguments(file: file, settings: settings, title: title))
+    public static func submit(file: URL, settings: PrintSettings, title: String,
+                              timeout: TimeInterval = submitTimeout) throws -> String {
+        let result = run("/usr/bin/lp", arguments(file: file, settings: settings, title: title), timeout: timeout)
+        if result.timedOut {
+            throw PrintError.failed("프린터가 응답하지 않아요. 프린터가 켜져 있고 같은 네트워크에 있는지 확인한 뒤 다시 인쇄해 주세요.")
+        }
         guard result.status == 0 else {
             let msg = result.output.trimmingCharacters(in: .whitespacesAndNewlines)
             throw PrintError.failed(msg.isEmpty ? "인쇄 요청이 실패했어요." : msg)

@@ -236,6 +236,7 @@ if (json)
                 ["right"] = Mm(s.PageSize.Width - s.Crop.MaxX), ["bottom"] = Mm(s.Crop.MinY),
             },
             ["scale"] = Math.Round(s.Scale, 4),
+            ["text_scale"] = Math.Round(s.TextScale, 4),
             ["blank_page_after"] = s.PadsBlankPage,
         }).ToArray()),
     };
@@ -250,7 +251,7 @@ else
         if (s.File.ElectiveSubject is { } sub)
             tags.Add("선택과목→" + (options.Electives.TryGetValue(sub, out var ch) ? ch.ShortName() : $"전체({string.Join('·', s.File.Electives.Select(e => e.ShortName()))})"));
         if (s.PadsBlankPage) tags.Add("+빈 쪽");
-        Console.WriteLine($"{s.File.Name}: {s.File.PageCount}쪽 → {s.PageIndices.Count}쪽, {Math.Round(s.Scale * 100)}%" +
+        Console.WriteLine($"{s.File.Name}: {s.File.PageCount}쪽 → {s.PageIndices.Count}쪽, {Math.Round(s.TextScale * 100)}%" +
             $"  (자른 여백 왼{(int)Mm(s.Crop.MinX)} 위{(int)Mm(s.PageSize.Height - s.Crop.MaxY)} 오{(int)Mm(s.PageSize.Width - s.Crop.MaxX)} 아래{(int)Mm(s.Crop.MinY)}mm)" +
             (tags.Count > 0 ? "  " + string.Join(", ", tags) : ""));
     }

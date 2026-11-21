@@ -16,14 +16,17 @@ public sealed class SourceFile : IDisposable
     /// <summary>쪽별 내용(잉크) 영역, 화면 방향 좌표계. 빈 쪽은 null.</summary>
     public IReadOnlyList<RectD?> InkBounds { get; }
     public IReadOnlyList<PageGeometry> Geometry { get; }
+    /// <summary>쪽별로 정답표인지(쪽 글자에 '정답표'가 있음). 정답표는 원래 A4 문서라 키우지 않는다.</summary>
+    public IReadOnlyList<bool> PageIsAnswerSheet { get; }
 
     public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
     public bool HasBothVariants => PageVariants.Contains(ExamVariant.Odd) && PageVariants.Contains(ExamVariant.Even);
     public IReadOnlyList<Elective> Electives => PageElectives.Where(e => e != null).Select(e => e!.Value).Distinct().ToList();
     public ElectiveSubject? ElectiveSubject => Electives.Count > 0 ? Electives[0].Subject() : null;
 
-    private SourceFile(string path, PdfDoc doc, List<ExamVariant?> labels, List<Elective?> electives, List<RectD?> ink, List<PageGeometry> geo)
+    private SourceFile(string path, PdfDoc doc, List<ExamVariant?> labels, List<Elective?> electives, List<RectD?> ink, List<PageGeometry> geo, List<bool> answer)
     {
+        PageIsAnswerSheet = answer;
         Path = path;
         Doc = doc;
         PageVariants = ExamAnalyzer.Propagate(labels);
@@ -42,6 +45,7 @@ public sealed class SourceFile : IDisposable
         var electives = new List<Elective?>();
         var ink = new List<RectD?>();
         var geo = new List<PageGeometry>();
+        var answer = new List<bool>();
         for (int i = 0; i < doc.PageCount; i++)
         {
             var g = doc.Geometry(i);
@@ -49,9 +53,19 @@ public sealed class SourceFile : IDisposable
             geo.Add(g);
             labels.Add(ExamAnalyzer.VariantLabel(text));
             electives.Add(ExamAnalyzer.ElectiveLabel(text));
+            answer.Add(ExamAnalyzer.IsAnswerSheet(text));
             ink.Add(ExamAnalyzer.InkBounds(doc, i, g));
         }
-        return new SourceFile(path, doc, labels, electives, ink, geo);
+        return new SourceFile(path, doc, labels, electives, ink, geo, answer);
+    }
+
+    /// <summary>이 쪽이 실제 시험지를 얼마로 줄여 담았는지(1 이하). A3보다 작은 쪽(A4·B4 등)은 시험지를 줄여 담은 것으로 보고
+    /// 긴 변 비율을 쓴다. A3 이상이거나 정답표면 1.</summary>
+    public double Reduction(int i)
+    {
+        if (i < 0 || i >= Geometry.Count || PageIsAnswerSheet[i]) return 1;
+        double longMM = Math.Max(Geometry[i].Size.Width, Geometry[i].Size.Height) / Units.PointsPerMM;
+        return longMM >= Units.ExamPaperLongSideMM - 20 ? 1 : longMM / Units.ExamPaperLongSideMM;
     }
 
     /// <summary>선택한 형에 해당하는 쪽 번호(0부터).</summary>
@@ -75,6 +89,9 @@ public sealed class SourceFile : IDisposable
 
 public static class ExamAnalyzer
 {
+    /// <summary>쪽 글자에 '정답표'가 있는지(공백 무시).</summary>
+    public static bool IsAnswerSheet(string text) => new string(text.Where(c => !char.IsWhiteSpace(c)).ToArray()).Contains("정답표");
+
     private static readonly HashSet<char> Brackets = new("()（）[]［］〔〕「」<>〈〉");
 
     /// <summary>텍스트에서 형 라벨을 찾는다. "홀수형", "홀 수 형", "( 홀수 )형" 모두 인식. 둘 다 있으면 라벨로 보지 않는다.</summary>

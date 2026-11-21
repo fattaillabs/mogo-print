@@ -15,6 +15,12 @@ final class AnalyzerTests: XCTestCase {
         XCTAssertNil(ExamAnalyzer.variantLabel(in: ""))
     }
 
+    func testAnswerSheetText() {
+        XCTAssertTrue(ExamAnalyzer.isAnswerSheet(text: "2026학년도 대학수학능력시험 국어영역 정 답 표"))
+        XCTAssertFalse(ExamAnalyzer.isAnswerSheet(text: "2025학년도 9월 전국연합학력평가 정답 및 해설"))
+        XCTAssertFalse(ExamAnalyzer.isAnswerSheet(text: "전국연합학력평가 문제지"))
+    }
+
     func testPropagateKeepsLeadingPagesUnlabeled() {
         let labels: [ExamVariant?] = [nil, .odd, nil, nil, .even, nil]
         XCTAssertEqual(ExamAnalyzer.propagate(labels), [nil, .odd, .odd, .odd, .even, .even])

@@ -21,8 +21,9 @@ public static class Imposer
             var pages = indices.Select(i =>
             {
                 var crop = FinalCrop(bases.TryGetValue(file.Geometry[i].SizeKey, out var b) ? b : null, file.Geometry[i], adjust);
-                double scale = Math.Min(Math.Min(usable.Width / crop.Width, usable.Height / crop.Height), options.MaxScale);
-                return new PlacedPage(i, crop, scale, file.Geometry[i]);
+                double reduction = file.Reduction(i);
+                double scale = Math.Min(Math.Min(usable.Width / crop.Width, usable.Height / crop.Height), options.MaxScale / reduction);
+                return new PlacedPage(i, crop, scale, file.Geometry[i], reduction);
             }).ToList();
             bool isLast = n == nonEmpty.Count - 1;
             sections.Add(new ExamSection(file, pages,
@@ -75,11 +76,11 @@ public static class Imposer
     public static RectD Crop(SourceFile file, int pageIndex, ImpositionOptions options) =>
         FinalCrop(BaseCrop(file, pageIndex, options), file.Geometry[pageIndex], options.Adjustment(file.Path));
 
-    /// <summary>범위를 A4에 놓을 때의 배율.</summary>
-    public static double Scale(RectD crop, ImpositionOptions options)
+    /// <summary>범위를 A4에 놓을 때의 배율(원본 PDF 대비). reduction은 그 쪽의 SourceFile.Reduction.</summary>
+    public static double Scale(RectD crop, ImpositionOptions options, double reduction = 1)
     {
         double margin = options.PaperMarginMM * Units.PointsPerMM;
-        return Math.Min(Math.Min((Units.A4.Width - 2 * margin) / crop.Width, (Units.A4.Height - 2 * margin) / crop.Height), options.MaxScale);
+        return Math.Min(Math.Min((Units.A4.Width - 2 * margin) / crop.Width, (Units.A4.Height - 2 * margin) / crop.Height), options.MaxScale / reduction);
     }
 
     /// <summary>A4 PDF를 만든다. 원본 쪽을 가져와 회전·배율·위치 변환과 자르기를 내용에 직접 걸므로 벡터 그대로다.</summary>

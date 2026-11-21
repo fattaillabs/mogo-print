@@ -227,7 +227,9 @@ public sealed class ManualCropView : UserControl
         prev.IsEnabled = position > 0;
         next.IsEnabled = position < pages.Count - 1;
         reset.IsEnabled = HasEdgeAdjustment;
-        scaleText.Text = $"원본 대비 글자 크기 {Math.Round(Imposer.Scale(Current, model.Options) * 100)}%";
+        // 실제 시험지 대비 글자 크기(바깥 화면의 파일 목록과 같은 값)
+        double reduction = item.File.Reduction(PageIndex);
+        scaleText.Text = $"원본 대비 글자 크기 {Math.Round(Imposer.Scale(Current, model.Options, reduction) * reduction * 100)}%";
         if (renderedPage != PageIndex) RenderPage();
         if (canvas.ActualWidth <= 0 || canvas.ActualHeight <= 0) return;
 

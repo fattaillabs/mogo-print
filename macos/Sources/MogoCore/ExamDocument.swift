@@ -69,6 +69,8 @@ public enum Elective: String, CaseIterable, Identifiable, Sendable, Codable {
 
 public let pointsPerMM: CGFloat = 72.0 / 25.4
 public let a4Size = CGSize(width: 595.28, height: 841.89)
+/// 실제 시험지(A3)의 긴 변(mm). A4 등으로 줄여 담은 PDF의 글자 크기를 이 크기 기준으로 잰다.
+public let examPaperLongSideMM: CGFloat = 420
 
 /// 페이지를 똑바로 세운(/Rotate 반영) 좌표계. 원점은 왼쪽 아래 (0, 0).
 public struct PageGeometry: Equatable, Sendable {
@@ -104,6 +106,8 @@ public final class SourceFile: Identifiable, @unchecked Sendable {
     public let inkBounds: [CGRect?]
     /// 페이지별 기하 정보.
     public let geometry: [PageGeometry]
+    /// 페이지별로 정답표인지(쪽 글자에 '정답표'가 있음). 정답표는 원래 A4 문서라 키우지 않는다.
+    public let pageIsAnswerSheet: [Bool]
 
     /// 쪽수. 화면 스레드에서 PDFDocument를 건드리지 않도록 미리 저장해 둔다.
     public let pageCount: Int
@@ -118,6 +122,14 @@ public final class SourceFile: Identifiable, @unchecked Sendable {
 
     /// 선택과목이 있으면 그 과목(국어·수학).
     public var electiveSubject: ElectiveSubject? { electives.first?.subject }
+
+    /// 이 쪽이 실제 시험지를 얼마로 줄여 담았는지(1 이하). A3보다 작은 쪽(A4·B4 등)은 시험지를 줄여 담은 것으로 보고
+    /// 긴 변 비율을 쓴다. A3 이상이거나 정답표면 1.
+    public func reduction(at i: Int) -> CGFloat {
+        guard geometry.indices.contains(i), !pageIsAnswerSheet[i] else { return 1 }
+        let long = max(geometry[i].size.width, geometry[i].size.height) / pointsPerMM
+        return long >= examPaperLongSideMM - 20 ? 1 : long / examPaperLongSideMM
+    }
 
     /// 홀수형과 짝수형이 한 파일에 같이 들어 있는지.
     public var hasBothVariants: Bool {
@@ -135,6 +147,7 @@ public final class SourceFile: Identifiable, @unchecked Sendable {
         self.pageElectives = analysis.electives
         self.inkBounds = analysis.ink
         self.geometry = analysis.geometry
+        self.pageIsAnswerSheet = analysis.answer
     }
 
     /// 여러 파일을 동시에 연다. 결과 순서는 입력 순서와 같고, 못 연 파일은 nil.
@@ -189,6 +202,12 @@ public enum ExamAnalyzer {
         return found.count == 1 ? found[0] : nil
     }
 
+    /// 쪽 글자에 '정답표'가 있는지(공백 무시).
+    public static func isAnswerSheet(text: String) -> Bool {
+        text.unicodeScalars.filter { !CharacterSet.whitespacesAndNewlines.contains($0) }
+            .map(String.init).joined().contains("정답표")
+    }
+
     /// 라벨이 없는 페이지는 앞 페이지 라벨을 이어받는다.
     public static func propagate(_ labels: [ExamVariant?]) -> [ExamVariant?] {
         var current: ExamVariant? = nil
@@ -208,6 +227,7 @@ public enum ExamAnalyzer {
         var electives: [Elective?]
         var ink: [CGRect?]
         var geometry: [PageGeometry]
+        var answer: [Bool]
     }
 
     /// 페이지마다 텍스트 라벨과 잉크 영역을 구한다. 가장 느린 단계라 여러 스레드로 나눈다.
@@ -221,7 +241,9 @@ public enum ExamAnalyzer {
         var electives = [Elective?](repeating: nil, count: n)
         var ink = [CGRect?](repeating: nil, count: n)
         var geometry = [PageGeometry?](repeating: nil, count: n)
+        var answer = [Bool](repeating: false, count: n)
         let workers = max(1, min(n / 8, 4, ProcessInfo.processInfo.activeProcessorCount))
+        answer.withUnsafeMutableBufferPointer { answerBuf in
         electives.withUnsafeMutableBufferPointer { electivesBuf in
         labels.withUnsafeMutableBufferPointer { labelsBuf in
             ink.withUnsafeMutableBufferPointer { inkBuf in
@@ -231,6 +253,7 @@ public enum ExamAnalyzer {
                     nonisolated(unsafe) let electivesBuf = electivesBuf
                     nonisolated(unsafe) let inkBuf = inkBuf
                     nonisolated(unsafe) let geoBuf = geoBuf
+                    nonisolated(unsafe) let answerBuf = answerBuf
                     nonisolated(unsafe) let primary = primary
                     DispatchQueue.concurrentPerform(iterations: workers) { w in
                         guard let doc = (w == 0 ? primary : nil) ?? PDFDocument(url: url) else { return }
@@ -241,6 +264,7 @@ public enum ExamAnalyzer {
                             let text = page.string ?? ""
                             labelsBuf[i] = variantLabel(in: text)
                             electivesBuf[i] = electiveLabel(in: text)
+                            answerBuf[i] = isAnswerSheet(text: text)
                             inkBuf[i] = inkBounds(of: ref, geometry: geo)
                         }
                     }
@@ -248,7 +272,8 @@ public enum ExamAnalyzer {
             }
         }
         }
-        return Analysis(labels: labels, electives: electives, ink: ink, geometry: geometry.compactMap { $0 })
+        }
+        return Analysis(labels: labels, electives: electives, ink: ink, geometry: geometry.compactMap { $0 }, answer: answer)
     }
 
     /// 페이지를 저해상도로 그려서 흰색이 아닌 픽셀의 경계를 찾는다(똑바로 세운 좌표계).

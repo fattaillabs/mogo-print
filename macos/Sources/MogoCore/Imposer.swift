@@ -35,7 +35,8 @@ public struct ImpositionOptions: Equatable, Sendable {
     public var padEndToEven: Bool = false
     /// 과목별로 고른 선택과목(국어·수학). 없으면 그 과목의 선택과목 쪽을 모두 넣는다.
     public var electives: [ElectiveSubject: Elective] = [:]
-    /// 원본보다 크게 키우지 않는다(정답표처럼 원래 A4인 파일).
+    /// 실제 시험지보다 크게 키우지 않는다(실제 시험지 대비 배율의 상한). A3 원본은 원본 크기,
+    /// A4로 줄여 담은 시험지는 A3 크기까지 키울 수 있고, 정답표는 원본보다 키우지 않는다(SourceFile.reduction).
     public var maxScale: CGFloat = 1
     /// 파일별 손 조정(파일 경로 기준).
     public var adjustments: [URL: CropAdjustment] = [:]
@@ -53,9 +54,14 @@ public struct PlacedPage: Sendable {
     public let index: Int
     /// 잘라낼 영역(똑바로 세운 좌표계).
     public let crop: CGRect
-    /// 원본 대비 배율.
+    /// 원본(PDF 쪽) 대비 배율.
     public let scale: CGFloat
     public let geometry: PageGeometry
+    /// 원본 PDF가 실제 시험지를 얼마로 줄여 담았는지(SourceFile.reduction).
+    public let reduction: CGFloat
+
+    /// 실제 시험지 대비 글자 크기. 화면에 보이는 %.
+    public var textScale: CGFloat { scale * reduction }
 }
 
 /// 한 파일에서 뽑은 페이지 묶음과 그 배치 정보.
@@ -68,6 +74,8 @@ public struct ExamSection {
     public var pageIndices: [Int] { pages.map(\.index) }
     /// 대표 배율(가장 작은 값).
     public var scale: CGFloat { pages.map(\.scale).min() ?? 1 }
+    /// 대표 글자 크기(실제 시험지 대비, 가장 작은 값).
+    public var textScale: CGFloat { pages.map(\.textScale).min() ?? 1 }
     /// 대표 크롭 영역(첫 쪽).
     public var crop: CGRect { pages.first?.crop ?? .zero }
     /// 대표 페이지 크기(첫 쪽).
@@ -97,8 +105,9 @@ public enum Imposer {
             let bases = autoCrops(file: file, indices: indices, adjust: adjust, pad: pad)
             let pages = indices.map { i -> PlacedPage in
                 let crop = finalCrop(base: bases[file.geometry[i].sizeKey], page: file.geometry[i], adjust: adjust)
-                let scale = min(usable.width / crop.width, usable.height / crop.height, options.maxScale)
-                return PlacedPage(index: i, crop: crop, scale: scale, geometry: file.geometry[i])
+                let reduction = file.reduction(at: i)
+                let scale = min(usable.width / crop.width, usable.height / crop.height, options.maxScale / reduction)
+                return PlacedPage(index: i, crop: crop, scale: scale, geometry: file.geometry[i], reduction: reduction)
             }
 
             let isLast = n == nonEmpty.count - 1
@@ -147,10 +156,11 @@ public enum Imposer {
                   adjust: options.adjustment(for: file.url))
     }
 
-    /// 범위를 A4에 놓을 때의 배율.
-    public static func scale(for crop: CGRect, options: ImpositionOptions) -> CGFloat {
+    /// 범위를 A4에 놓을 때의 배율(원본 PDF 대비). reduction은 그 쪽의 SourceFile.reduction.
+    public static func scale(for crop: CGRect, options: ImpositionOptions, reduction: CGFloat = 1) -> CGFloat {
         let margin = options.paperMarginMM * pointsPerMM
-        return min((a4Size.width - 2 * margin) / crop.width, (a4Size.height - 2 * margin) / crop.height, options.maxScale)
+        return min((a4Size.width - 2 * margin) / crop.width, (a4Size.height - 2 * margin) / crop.height,
+                   options.maxScale / reduction)
     }
 
     /// 손 조정 값(mm)을 적용한다. +는 안으로 더 자르고 -는 밖으로 넓힌다.
